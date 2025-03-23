@@ -77,4 +77,4 @@ tmp/
 # 예외 설정: 특정 파일은 포함 (필요에 따라 수정)
 !.gitignore
 !README.md
-!LICENSE
+!LICENSEvenv/
