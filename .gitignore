@@ -1,0 +1,80 @@
+# Python 관련 파일
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+venv/
+.venv/
+
+# IDE 관련 파일
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# 로그 파일
+*.log
+
+# 데이터 및 결과 파일
+*.pdf
+*.txt
+*.csv
+*.xlsx
+*.xls
+*.json
+!requirements.txt
+
+# OCR 작업 관련 디렉토리 및 파일
+work_*/
+*/images/
+*/ocr/
+*.png
+*.jpg
+*.jpeg
+
+# 환경 변수 파일
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# 임시 파일
+temp/
+tmp/
+
+# 모델 파일
+*.pkl
+*.h5
+*.model
+*.bin
+
+# 데이터베이스 파일
+*.db
+*.sqlite
+*.sqlite3
+
+# 특정 프로젝트 폴더 (선택적)
+# data/policies/
+
+# 예외 설정: 특정 파일은 포함 (필요에 따라 수정)
+!.gitignore
+!README.md
+!LICENSE
