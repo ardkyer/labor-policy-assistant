@@ -1,10 +1,10 @@
 import os
+print(f"로드된 OpenAI API 키: {os.getenv('OPENAI_API_KEY')[:10]}...")
 import re
 import pdfplumber
-import langchain
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.embeddings import OpenAIEmbeddings
-import pinecone
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+from langchain_openai import OpenAIEmbeddings  # 변경됨
+from pinecone import Pinecone, ServerlessSpec  # 변경됨
 from tqdm import tqdm
 import time
 import json
@@ -20,20 +20,23 @@ from backend.app.core.config import settings
 os.environ["OPENAI_API_KEY"] = settings.OPENAI_API_KEY
 embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 
-pinecone.init(
-    api_key=settings.PINECONE_API_KEY,
-    environment=settings.PINECONE_ENVIRONMENT
-)
+# Pinecone 클라이언트 초기화 (변경된 부분)
+pc = Pinecone(api_key=settings.PINECONE_API_KEY)
 
 # Pinecone 인덱스 생성 또는 가져오기
-if settings.PINECONE_INDEX_NAME not in pinecone.list_indexes():
-    pinecone.create_index(
+if settings.PINECONE_INDEX_NAME not in pc.list_indexes().names():
+    pc.create_index(
         name=settings.PINECONE_INDEX_NAME,
         dimension=1536,  # text-embedding-3-small 모델의 차원
-        metric="cosine"
+        metric="cosine",
+        spec=ServerlessSpec(
+            cloud="aws",  # 또는 "gcp"나 "azure"
+            region=settings.PINECONE_ENVIRONMENT
+        )
     )
 
-index = pinecone.Index(settings.PINECONE_INDEX_NAME)
+# 인덱스 가져오기
+index = pc.Index(settings.PINECONE_INDEX_NAME)
 
 def extract_text_from_pdf(pdf_path):
     """PDF에서 텍스트 추출"""
@@ -149,8 +152,9 @@ def embed_and_store_chunks(chunk_metadata):
 def upsert_vectors_to_pinecone(vectors):
     """벡터를 Pinecone에 업서트"""
     try:
-        pinecone_vectors = [(id, embedding, metadata) for id, embedding, metadata in vectors]
-        index.upsert(vectors=pinecone_vectors)
+        # 새 Pinecone API에 맞게 업데이트
+        records = [(id, embedding, metadata) for id, embedding, metadata in vectors]
+        index.upsert(vectors=records)
         time.sleep(1)  # API 제한 방지
     except Exception as e:
         print(f"Pinecone 업서트 오류: {e}")

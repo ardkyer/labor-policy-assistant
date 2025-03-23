@@ -1,6 +1,7 @@
 import os
 from typing import List, Optional
-from pydantic import BaseSettings, validator
+from pydantic_settings import BaseSettings
+from pydantic import validator 
 
 class Settings(BaseSettings):
     # 프로젝트 기본 설정
