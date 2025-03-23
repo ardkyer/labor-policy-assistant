@@ -1,3 +1,7 @@
+*.pdf
+*.png
+*.txt
+
 # Python 관련 파일
 __pycache__/
 *.py[cod]
@@ -21,7 +25,7 @@ var/
 *.egg
 venv/
 .venv/
-.pdf
+
 
 # IDE 관련 파일
 .idea/
