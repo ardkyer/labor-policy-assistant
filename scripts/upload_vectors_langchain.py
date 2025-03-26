@@ -2,20 +2,21 @@ import os
 import re
 from tqdm import tqdm
 from dotenv import load_dotenv
-from pinecone import Pinecone, PodSpec
 
 # .env 파일 로드
 load_dotenv()
 
 # 환경 변수 가져오기
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
+PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "us-west1-gcp")
 INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "labor-policy")
 
-# 작업 디렉토리 설정
+# 작업 디렉토리 설정 - 네이버 OCR 결과물 사용
 work_dir = "work_labor_sample_naver"
 merged_file = os.path.join(work_dir, "labor_sample_text.txt")
 
-# 텍스트 파일 다시 읽기
+# 텍스트 파일 읽기
 with open(merged_file, 'r', encoding='utf-8') as f:
     text = f.read()
 
@@ -56,7 +57,7 @@ def create_chunks_with_metadata(text, chunk_size=1000, chunk_overlap=200):
         page_chunks = text_splitter.split_text(content)
         for chunk in page_chunks:
             chunks.append(chunk)
-            metadatas.append({"page": page_num})
+            metadatas.append({"page": page_num, "source": "naver_ocr"})
     
     return chunks, metadatas
 
@@ -65,7 +66,6 @@ def get_embeddings(chunks):
     from openai import OpenAI
     import time
     
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     client = OpenAI(api_key=OPENAI_API_KEY)
     embeddings = []
     
@@ -81,9 +81,11 @@ def get_embeddings(chunks):
 
 # Pinecone에 업로드 - 메타데이터 포함
 def upload_to_pinecone(chunks, embeddings, metadatas):
+    from pinecone import Pinecone, ServerlessSpec
+    
     print("Pinecone에 업로드 중...")
     
-    # Pinecone 초기화
+    # Pinecone 초기화 (최신 방식)
     pc = Pinecone(api_key=PINECONE_API_KEY)
     
     # 인덱스 존재 확인
@@ -108,11 +110,12 @@ def upload_to_pinecone(chunks, embeddings, metadatas):
         vectors = []
         for j in range(i, i_end):
             vectors.append({
-                "id": f"chunk_{j}",
+                "id": f"naver_chunk_{j}",
                 "values": embeddings[j],
                 "metadata": {
                     "text": chunks[j],
-                    "page": metadatas[j]["page"]
+                    "page": metadatas[j]["page"],
+                    "source": metadatas[j]["source"]
                 }
             })
         
@@ -134,6 +137,8 @@ def main():
     
     # Pinecone에 업로드 (메타데이터 포함)
     upload_to_pinecone(chunks, embeddings, metadatas)
+    
+    print("모든 과정이 완료되었습니다!")
 
 if __name__ == "__main__":
     main()
