@@ -13,8 +13,8 @@ PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "us-west1-gcp")
 INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "labor-policy")
 
 # 작업 디렉토리 설정 - 네이버 OCR 결과물 사용
-work_dir = "work_labor_sample_naver"
-merged_file = os.path.join(work_dir, "labor_sample_text.txt")
+work_dir = "work_labor_naver_71~80"
+merged_file = os.path.join(work_dir, "labor_71~80_text.txt")
 
 # 텍스트 파일 읽기
 with open(merged_file, 'r', encoding='utf-8') as f:
@@ -82,35 +82,36 @@ def get_embeddings(chunks):
 # Pinecone에 업로드 - 메타데이터 포함
 def upload_to_pinecone(chunks, embeddings, metadatas):
     from pinecone import Pinecone, ServerlessSpec
+    import time
     
     print("Pinecone에 업로드 중...")
-    
     # Pinecone 초기화 (최신 방식)
     pc = Pinecone(api_key=PINECONE_API_KEY)
     
     # 인덱스 존재 확인
     existing_indexes = [index.name for index in pc.list_indexes()]
-    
     if INDEX_NAME not in existing_indexes:
         print(f"인덱스 '{INDEX_NAME}' 생성 중...")
         pc.create_index(
             name=INDEX_NAME,
-            dimension=1536,  # text-embedding-3-small 차원
+            dimension=1536, # text-embedding-3-small 차원
             metric="cosine"
         )
     
     # 인덱스 연결
     index = pc.Index(INDEX_NAME)
     
+    # 현재 타임스탬프 (중복 방지용)
+    timestamp = int(time.time())
+    
     # 데이터 업로드
     batch_size = 100
     for i in tqdm(range(0, len(chunks), batch_size), desc="벡터 업로드 중"):
         i_end = min(i + batch_size, len(chunks))
-        
         vectors = []
         for j in range(i, i_end):
             vectors.append({
-                "id": f"naver_chunk_{j}",
+                "id": f"naver_chunk_{timestamp}_{j}",  # 타임스탬프 추가
                 "values": embeddings[j],
                 "metadata": {
                     "text": chunks[j],
@@ -118,10 +119,8 @@ def upload_to_pinecone(chunks, embeddings, metadatas):
                     "source": metadatas[j]["source"]
                 }
             })
-        
         # 벡터 업로드
         index.upsert(vectors=vectors)
-    
     print("Pinecone 업로드 완료!")
 
 # 메인 실행 코드

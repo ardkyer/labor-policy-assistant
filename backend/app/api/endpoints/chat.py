@@ -2,34 +2,28 @@ from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-import pinecone
-import os
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.chat_models import ChatOpenAI
-
 from app.api.deps import get_db, get_current_user
 from app.core.config import settings
 from app.db.models import User, Policy, PolicyChunk
+from app.services.llm_service import RAGService
 
 router = APIRouter()
 
-# OpenAI 및 Pinecone 초기화
-os.environ["OPENAI_API_KEY"] = settings.OPENAI_API_KEY
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-
-pinecone.init(
-    api_key=settings.PINECONE_API_KEY,
-    environment=settings.PINECONE_ENVIRONMENT
-)
-
-index = pinecone.Index(settings.PINECONE_INDEX_NAME)
+# RAG 서비스 초기화
+rag_service = RAGService()
 
 class ChatRequest(BaseModel):
     query: str
+    user_profile: Optional[dict] = None
+
+class Source(BaseModel):
+    page: str
+    text: str
+    similarity: Optional[float] = None
 
 class ChatResponse(BaseModel):
     answer: str
-    sources: List[dict] = []
+    sources: List[Source] = []
 
 @router.post("/", response_model=ChatResponse)
 async def chat_with_assistant(
@@ -44,56 +38,38 @@ async def chat_with_assistant(
     query = chat_request.query
     
     try:
-        # 1. 쿼리 임베딩 생성
-        query_embedding = embeddings.embed_query(query)
+        # 사용자 프로필 정보 추가 (있는 경우)
+        user_profile = None
+        if current_user.profiles and len(current_user.profiles) > 0:
+            profile = current_user.profiles[0]
+            user_profile = {
+                "age": profile.age,
+                "gender": profile.gender,
+                "employment_status": profile.employment_status,
+                "region": profile.region
+            }
         
-        # 2. Pinecone에서 유사한 청크 검색
-        search_results = index.query(
-            vector=query_embedding,
-            top_k=5,
-            include_metadata=True
-        )
+        # 요청에 프로필이 포함된 경우 사용
+        if chat_request.user_profile:
+            user_profile = chat_request.user_profile
         
-        # 3. 검색 결과에서 관련 정보 추출
-        contexts = []
-        sources = []
+        # RAG 서비스를 통한 응답 생성
+        response = rag_service.generate_response(query, user_profile)
         
-        for match in search_results['matches']:
-            if match['score'] < 0.7:  # 유사도 임계값
-                continue
-                
-            context = match['metadata']['text']
-            page_number = match['metadata'].get('page', 'N/A')
-            
-            contexts.append(context)
-            sources.append({
-                "page": page_number,
-                "text": context[:150] + "..." if len(context) > 150 else context,
-                "similarity": match['score']
-            })
-        
-        # 4. 컨텍스트 기반 응답 생성
-        if contexts:
-            prompt = f"""
-            당신은 고용노동부 정책 전문가입니다. 다음 정보를 기반으로 사용자의 질문에 정확하게 답변해주세요.
-            
-            ### 관련 정책 정보:
-            {' '.join(contexts)}
-            
-            ### 사용자 질문:
-            {query}
-            
-            정확한 정보만 제공하고, 모르는 내용은 모른다고 답변하세요. 관련 페이지 번호도 언급해주세요.
-            """
-            
-            llm = ChatOpenAI(temperature=0, model_name="gpt-3.5-turbo")
-            answer = llm.predict(prompt)
-        else:
-            answer = "죄송합니다, 귀하의 질문에 관련된 정책 정보를 찾을 수 없습니다. 다른 질문을 해주시거나 더 구체적인 내용을 알려주세요."
+        # 응답 형식 변환
+        sources_formatted = []
+        for source in response["sources"]:
+            sources_formatted.append(
+                Source(
+                    page=source["page"],
+                    text=source["text"],
+                    similarity=source.get("score")
+                )
+            )
         
         return {
-            "answer": answer,
-            "sources": sources
+            "answer": response["answer"],
+            "sources": sources_formatted
         }
         
     except Exception as e:

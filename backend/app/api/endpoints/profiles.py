@@ -2,7 +2,6 @@ from typing import Any, List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-
 from app.api.deps import get_db, get_current_user
 from app.db.models import UserProfile, User
 
@@ -21,7 +20,7 @@ class UserProfileCreate(UserProfileBase):
 class UserProfileResponse(UserProfileBase):
     id: int
     user_id: int
-
+    
     class Config:
         orm_mode = True
 
@@ -40,7 +39,7 @@ def get_my_profile(
     return profile
 
 @router.post("/", response_model=UserProfileResponse)
-def create_profile(
+def create_or_update_profile(
     *,
     db: Session = Depends(get_db),
     profile_in: UserProfileCreate,
@@ -48,10 +47,11 @@ def create_profile(
 ) -> Any:
     """
     사용자 프로필 생성 또는 업데이트
+    - 프로필이 없는 경우: 새 프로필 생성
+    - 프로필이 이미 있는 경우: 기존 프로필 업데이트
     """
     # 기존 프로필 확인
     profile = db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
-    
     if profile:
         # 기존 프로필 업데이트
         for key, value in profile_in.dict(exclude_unset=True).items():
@@ -63,27 +63,6 @@ def create_profile(
             **profile_in.dict()
         )
         db.add(profile)
-    
-    db.commit()
-    db.refresh(profile)
-    return profile
-
-@router.put("/", response_model=UserProfileResponse)
-def update_profile(
-    *,
-    db: Session = Depends(get_db),
-    profile_in: UserProfileBase,
-    current_user: User = Depends(get_current_user),
-) -> Any:
-    """
-    사용자 프로필 업데이트
-    """
-    profile = db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
-    if not profile:
-        raise HTTPException(status_code=404, detail="프로필이 없습니다")
-    
-    for key, value in profile_in.dict(exclude_unset=True).items():
-        setattr(profile, key, value)
     
     db.commit()
     db.refresh(profile)

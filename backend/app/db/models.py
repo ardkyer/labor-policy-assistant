@@ -56,14 +56,13 @@ class Policy(Base):
 
 class PolicyChunk(Base):
     __tablename__ = "policy_chunks"
-
     id = Column(Integer, primary_key=True, index=True)
     policy_id = Column(Integer, ForeignKey("policies.id"), nullable=True)  # 특정 정책과 연결될 수 있음
     content = Column(Text, nullable=False)
     page_number = Column(Integer, nullable=True)
     chunk_index = Column(Integer, nullable=True)
     vector_id = Column(String(255), nullable=True)  # Pinecone에 저장된 벡터 ID
-    metadata = Column(JSON, nullable=True)  # 추가 메타데이터
+    chunk_metadata = Column(JSON, nullable=True)  # 추가 메타데이터 (metadata에서 이름 변경)
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class Notification(Base):
