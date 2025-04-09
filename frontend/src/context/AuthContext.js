@@ -1,5 +1,5 @@
 // src/context/AuthContext.js
-import React, { createContext, useState } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
 // 백엔드 서버 URL
@@ -10,6 +10,28 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true); // 로딩 상태 추가
+
+  // 앱 시작 시 자동으로 사용자 정보 불러오기
+  useEffect(() => {
+    const loadUserFromToken = async () => {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          await fetchUserInfo(token);
+        } catch (err) {
+          console.error('토큰에서 사용자 정보 로드 실패:', err);
+          localStorage.removeItem('token'); // 유효하지 않은 토큰 제거
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
+      }
+    };
+
+    loadUserFromToken();
+  }, []);
 
   // 로그인 함수
   const login = async (email, password) => {
@@ -82,6 +104,7 @@ export const AuthProvider = ({ children }) => {
       setUser(response.data);
     } catch (err) {
       console.error('사용자 정보 조회 실패:', err.response?.data || err.message);
+      throw err; // 에러를 다시 던져서 호출자가 처리할 수 있게 함
     }
   };
 
@@ -92,7 +115,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, error, login, register, logout }}>
+    <AuthContext.Provider value={{ user, error, loading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

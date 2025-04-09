@@ -29,36 +29,38 @@ const ChatAssistant = () => {
     setInput(e.target.value);
   };
 
+  // handleSendMessage 함수 수정
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    // Add user message to chat
+    // 메시지 추가 부분은 그대로 유지
     const userMessage = {
       sender: 'user',
       text: input,
       timestamp: new Date().toISOString()
     };
-    
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setLoading(true);
 
     try {
-      // Send message to API
-      const response = await api.post('/api/v1/chat/', {
-        message: input
+      // 백엔드 API 스키마에 맞게 요청 구조 수정
+      const response = await api.post('/chat', {
+        query: input  // 'message'가 아닌 'query'로 변경
       });
 
-      // Add assistant response to chat
+      // 응답 구조 변경: answer 필드 사용
       setMessages(prev => [...prev, {
         sender: 'assistant',
-        text: response.data.response,
+        text: response.data.answer,  // 'response'가 아닌 'answer'로 변경
         timestamp: new Date().toISOString(),
-        policies: response.data.policies || []
+        // 'policies'는 백엔드 응답에 없으므로 제거하거나 sources 활용
+        sources: response.data.sources || []
       }]);
     } catch (err) {
       console.error('Error sending message:', err);
+      // 에러 메시지 부분은 그대로 유지
       setMessages(prev => [...prev, {
         sender: 'assistant',
         text: '죄송합니다. 메시지 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
@@ -79,13 +81,13 @@ const ChatAssistant = () => {
 
       <div className="chat-messages">
         {messages.map((message, index) => (
-          <div 
-            key={index} 
+          <div
+            key={index}
             className={`message ${message.sender === 'user' ? 'user-message' : 'assistant-message'}`}
           >
             <div className="message-content">
               <p>{message.text}</p>
-              
+
               {message.policies && message.policies.length > 0 && (
                 <div className="suggested-policies">
                   <h4>추천 정책:</h4>
@@ -100,11 +102,11 @@ const ChatAssistant = () => {
               )}
             </div>
             <span className="message-time">
-              {new Date(message.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+              {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
         ))}
-        
+
         {loading && (
           <div className="message assistant-message">
             <div className="message-content typing-indicator">
@@ -114,7 +116,7 @@ const ChatAssistant = () => {
             </div>
           </div>
         )}
-        
+
         <div ref={messagesEndRef} />
       </div>
 
