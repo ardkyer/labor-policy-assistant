@@ -1,11 +1,20 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import api from '../services/api';
+import api, { apiService } from '../services/api';
 import './Profile.css';
 
 const Profile = () => {
   const { user } = useContext(AuthContext);
-  const [profileData, setProfileData] = useState(null);
+  const [profileData, setProfileData] = useState({
+    name: '',
+    age: '',
+    gender: '',
+    employmentStatus: '',
+    region: '',
+    notifyPolicyUpdates: false,
+    notifyDeadlines: false,
+    notifyNewPolicies: false
+  });
   const [savedPolicies, setSavedPolicies] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -16,19 +25,47 @@ const Profile = () => {
     const fetchProfileData = async () => {
       try {
         setLoading(true);
-        const profileResponse = await api.get('/api/v1/profiles/me');
-        setProfileData(profileResponse.data);
         
-        // 저장한 정책 가져오기
-        const policiesResponse = await api.get('/api/v1/profiles/me/saved-policies');
-        setSavedPolicies(policiesResponse.data);
+        // 사용자 기본 정보 가져오기
+        const userResponse = await api.get('/auth/me');
+        console.log('사용자 정보 응답:', userResponse.data);
         
-        // 알림 가져오기
-        const notificationsResponse = await api.get('/api/v1/profiles/me/notifications');
-        setNotifications(notificationsResponse.data);
+        // 프로필 데이터 설정
+        const userData = userResponse.data;
+        const profile = userData.profile || {};
+        
+        setProfileData({
+          name: userData.full_name || '',
+          age: profile.age || '',
+          gender: profile.gender || '',
+          employmentStatus: profile.employment_status || '',
+          region: profile.region || '',
+          notifyPolicyUpdates: profile.notify_policy_updates || false,
+          notifyDeadlines: profile.notify_deadlines || false,
+          notifyNewPolicies: profile.notify_new_policies || false
+        });
+        
+        try {
+          // 저장한 정책 가져오기 (가능한 경우)
+          const policiesResponse = await api.get('/profiles/me/saved-policies');
+          setSavedPolicies(policiesResponse.data);
+        } catch (err) {
+          console.warn('저장된 정책을 가져오는데 실패했습니다:', err);
+          setSavedPolicies([]);
+        }
+        
+        try {
+          // 알림 가져오기 (가능한 경우)
+          const notificationsResponse = await api.get('/profiles/me/notifications');
+          setNotifications(notificationsResponse.data);
+        } catch (err) {
+          console.warn('알림을 가져오는데 실패했습니다:', err);
+          setNotifications([]);
+        }
+        
       } catch (err) {
+        console.error('프로필 정보를 불러오는데 실패했습니다:', err);
         setError('프로필 정보를 불러오는데 실패했습니다.');
-        console.error(err);
       } finally {
         setLoading(false);
       }
@@ -82,21 +119,33 @@ const Profile = () => {
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/api/v1/profiles/', editableProfile);
+      // 프로필 업데이트 요청
+      const updateData = {
+        name: editableProfile.name,
+        age: editableProfile.age,
+        gender: editableProfile.gender,
+        employment_status: editableProfile.employmentStatus,
+        region: editableProfile.region
+      };
+      
+      await api.put('/profiles/me', updateData);
+      
+      // 프로필 데이터 업데이트
       setProfileData({
         ...profileData,
         ...editableProfile
       });
+      
       setIsEditing(false);
     } catch (err) {
+      console.error('프로필 업데이트에 실패했습니다:', err);
       setError('프로필 업데이트에 실패했습니다.');
-      console.error(err);
     }
   };
 
   const handleRemoveSavedPolicy = async (policyId) => {
     try {
-      await api.delete(`/api/v1/profiles/me/saved-policies/${policyId}`);
+      await api.delete(`/profiles/me/saved-policies/${policyId}`);
       setSavedPolicies(prev => prev.filter(policy => policy.id !== policyId));
     } catch (err) {
       console.error('정책 삭제 실패:', err);
@@ -229,7 +278,7 @@ const Profile = () => {
               <div className="profile-info">
                 <div className="info-item">
                   <span className="info-label">이메일</span>
-                  <span className="info-value">{user.email}</span>
+                  <span className="info-value">{user?.email || '-'}</span>
                 </div>
                 <div className="info-item">
                   <span className="info-label">이름</span>
@@ -265,7 +314,12 @@ const Profile = () => {
                 </div>
                 <div className="info-item">
                   <span className="info-label">지역</span>
-                  <span className="info-value">{profileData.region || '-'}</span>
+                  <span className="info-value">
+                    {profileData.region === 'seoul' && '서울'}
+                    {profileData.region === 'busan' && '부산'}
+                    {profileData.region === 'incheon' && '인천'}
+                    {!profileData.region && '-'}
+                  </span>
                 </div>
               </div>
             )}
@@ -279,7 +333,7 @@ const Profile = () => {
             {savedPolicies.length === 0 ? (
               <div className="no-policies">
                 <p>저장된 정책이 없습니다.</p>
-                <a href="/search" className="search-link">정책 검색하러 가기</a>
+                <a href="/policies/search" className="search-link">정책 검색하러 가기</a>
               </div>
             ) : (
               <div className="saved-policies-list">
@@ -293,7 +347,7 @@ const Profile = () => {
                       )}
                     </div>
                     <div className="policy-actions">
-                      <a href={`/policy/${policy.id}`} className="view-button">상세 보기</a>
+                      <a href={`/policies/${policy.id}`} className="view-button">상세 보기</a>
                       <button 
                         className="remove-button"
                         onClick={() => handleRemoveSavedPolicy(policy.id)}
@@ -320,13 +374,13 @@ const Profile = () => {
                   checked={profileData.notifyPolicyUpdates} 
                   onChange={async () => {
                     try {
-                      await api.post('/api/v1/profiles/', {
-                        ...profileData,
-                        notifyPolicyUpdates: !profileData.notifyPolicyUpdates
+                      const updated = !profileData.notifyPolicyUpdates;
+                      await api.put('/profiles/me/notifications/settings', {
+                        notify_policy_updates: updated
                       });
                       setProfileData(prev => ({
                         ...prev,
-                        notifyPolicyUpdates: !prev.notifyPolicyUpdates
+                        notifyPolicyUpdates: updated
                       }));
                     } catch (err) {
                       console.error('알림 설정 업데이트 실패:', err);
@@ -344,13 +398,13 @@ const Profile = () => {
                   checked={profileData.notifyDeadlines} 
                   onChange={async () => {
                     try {
-                      await api.post('/api/v1/profiles/', {
-                        ...profileData,
-                        notifyDeadlines: !profileData.notifyDeadlines
+                      const updated = !profileData.notifyDeadlines;
+                      await api.put('/profiles/me/notifications/settings', {
+                        notify_deadlines: updated
                       });
                       setProfileData(prev => ({
                         ...prev,
-                        notifyDeadlines: !prev.notifyDeadlines
+                        notifyDeadlines: updated
                       }));
                     } catch (err) {
                       console.error('알림 설정 업데이트 실패:', err);
@@ -368,13 +422,13 @@ const Profile = () => {
                   checked={profileData.notifyNewPolicies} 
                   onChange={async () => {
                     try {
-                      await api.post('/api/v1/profiles/', {
-                        ...profileData,
-                        notifyNewPolicies: !profileData.notifyNewPolicies
+                      const updated = !profileData.notifyNewPolicies;
+                      await api.put('/profiles/me/notifications/settings', {
+                        notify_new_policies: updated
                       });
                       setProfileData(prev => ({
                         ...prev,
-                        notifyNewPolicies: !prev.notifyNewPolicies
+                        notifyNewPolicies: updated
                       }));
                     } catch (err) {
                       console.error('알림 설정 업데이트 실패:', err);

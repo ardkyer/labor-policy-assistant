@@ -1,4 +1,3 @@
-// File: src/pages/Register.js
 import React, { useState, useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -58,19 +57,9 @@ const Register = () => {
     e.preventDefault();
     
     if (validate()) {
-      const userData = {
-        email: formData.email,
-        password: formData.password,
-        name: formData.name,
-        profile: {
-          age: formData.age,
-          gender: formData.gender,
-          employmentStatus: formData.employmentStatus,
-          region: formData.region
-        }
-      };
+      console.log('회원가입 데이터:', formData);
       
-      const success = await register(userData);
+      const success = await register(formData);
       if (success) {
         navigate('/login');
       }
