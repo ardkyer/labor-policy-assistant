@@ -102,43 +102,65 @@ def search_policies(
 def recommend_policies_db(
     *,
     db: Session = Depends(get_db),
+    age: Optional[str] = None,
+    gender: Optional[str] = None,
+    employment: Optional[str] = None,
+    region: Optional[str] = None,
     current_user: User = Depends(get_current_user),
 ) -> Any:
     """
-    사용자 프로필 기반 정책 추천 (DB 기반)
+    사용자 프로필 기반 정책 추천 (필터 기반)
     """
-    # 사용자 프로필이 있는지 확인
-    if not current_user.profiles:
-        raise HTTPException(status_code=400, detail="사용자 프로필이 없습니다")
-    user_profile = current_user.profiles[0]  # 첫 번째 프로필 사용
+    # 1. 쿼리 파라미터에서 필터 정보 가져오기
+    filters = {
+        "age": age,
+        "gender": gender,
+        "employment_status": employment,
+        "region": region
+    }
     
-    # 프로필 기반 간단한 필터링
-    query = db.query(Policy)
+    # 2. 필터 정보가 없는 경우 사용자 프로필에서 정보 사용
+    if not any(filters.values()) and current_user.profiles:
+        user_profile = current_user.profiles[0]
+        filters = {
+            "age": user_profile.age,
+            "gender": user_profile.gender,
+            "employment_status": user_profile.employment_status,
+            "region": user_profile.region
+        }
     
-    # 연령 기반 필터링
-    if user_profile.age:
-        query = query.filter(
-            (Policy.target_age_min.is_(None) | (Policy.target_age_min <= user_profile.age)) &
-            (Policy.target_age_max.is_(None) | (Policy.target_age_max >= user_profile.age))
-        )
-    
-    # 성별 기반 필터링
-    if user_profile.gender:
-        query = query.filter(
-            (Policy.target_gender.is_(None)) |
-            (Policy.target_gender == "ALL") |
-            (Policy.target_gender == user_profile.gender)
-        )
-    
-    # 지역 기반 필터링
-    if user_profile.region:
-        query = query.filter(
-            (Policy.target_region.is_(None)) |
-            (Policy.target_region == user_profile.region)
-        )
-    
-    policies = query.all()
-    return policies
+    # 3. 벡터 검색 사용하여 정책 추천
+    try:
+        # 필터에서 None 값 제거
+        clean_filters = {k: v for k, v in filters.items() if v}
+        
+        # 벡터 기반 정책 추천
+        recommendations = policy_matcher.recommend_policies(clean_filters)
+        
+        # 결과 변환
+        policies = []
+        for recommendation in recommendations:
+            # DB에서 정책 정보 찾기 (있는 경우)
+            policy_id = recommendation.get("policy_id")
+            policy = None
+            if policy_id:
+                policy = db.query(Policy).filter(Policy.id == policy_id).first()
+            
+            # 정책 정보가 없으면 벡터 검색 결과로 생성
+            if policy:
+                policies.append(policy)
+            else:
+                # 가상 정책 객체 생성
+                policies.append(Policy(
+                    id=0,  # 임시 ID
+                    title=recommendation.get("title", "추천 정책"),
+                    description=recommendation.get("text", ""),
+                    source_page=recommendation.get("page", "")
+                ))
+        
+        return policies
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"정책 추천 중 오류 발생: {str(e)}")
 
 @router.post("/recommend-vector/", response_model=RecommendationResponse)
 async def recommend_policies_vector(

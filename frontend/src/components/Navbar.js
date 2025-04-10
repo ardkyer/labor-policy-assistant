@@ -1,4 +1,3 @@
-// File: src/components/Navbar.js
 import React, { useContext } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
@@ -7,12 +6,12 @@ import './Navbar.css';
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
-
+  
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
-
+  
   return (
     <nav className="navbar">
       <div className="navbar-logo">
@@ -23,7 +22,8 @@ const Navbar = () => {
           <Link to="/">홈</Link>
         </li>
         <li>
-          <Link to="/search">정책 검색</Link>
+          {/* "정책 검색"에서 "정책 추천"으로 변경 */}
+          <Link to="/search">정책 추천</Link>
         </li>
         <li>
           <Link to="/chat">챗봇 상담</Link>
