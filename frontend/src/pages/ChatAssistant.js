@@ -17,6 +17,7 @@ const ChatAssistant = () => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [isTemporaryChat, setIsTemporaryChat] = useState(false);
 
   const messagesEndRef = useRef(null);
 
@@ -26,11 +27,6 @@ const ChatAssistant = () => {
       const response = await api.get('/chat/list');
       console.log('불러온 채팅 목록:', response.data);
       setChats(response.data);
-
-      // 채팅이 하나도 없을 때만 새 채팅 생성
-      if (response.data.length === 0 && !chatId) {
-        createNewChat();
-      }
     } catch (error) {
       console.error('채팅 목록 불러오기 실패:', error);
     }
@@ -38,6 +34,18 @@ const ChatAssistant = () => {
 
   // 특정 채팅의 메시지 불러오기
   const fetchMessages = async (id) => {
+    if (id === 'temp') {
+      // 임시 채팅인 경우 기본 인사말만 표시
+      setMessages([
+        {
+          sender: 'assistant',
+          text: '안녕하세요! 고용노동 정책 어시스턴트입니다. 어떤 정책에 관심이 있으신가요?',
+          timestamp: new Date().toISOString()
+        }
+      ]);
+      return;
+    }
+
     try {
       setLoading(true);
       const response = await api.get(`/chat/${id}/messages`);
@@ -90,16 +98,8 @@ const ChatAssistant = () => {
 
       // 현재 보고 있는 채팅이 삭제된 경우
       if (id === activeChatId) {
-        if (chats.length > 1) {
-          // 다른 채팅으로 이동
-          const nextChat = chats.find(chat => chat.id !== id);
-          if (nextChat) {
-            navigate(`/chat/${nextChat.id}`);
-          }
-        } else {
-          // 남은 채팅이 없으면 새 채팅 생성
-          createNewChat();
-        }
+        // 임시 채팅으로 이동
+        navigate('/chat/temp', { replace: true });
       }
     } catch (error) {
       console.error('채팅 삭제 실패:', error);
@@ -107,14 +107,8 @@ const ChatAssistant = () => {
     }
   };
 
-  // 새 채팅 생성 함수 수정
-  const createNewChat = async () => {
-    // 이미 활성화된 채팅이 있고, 메시지가 초기 인사말뿐이라면 새 채팅을 생성하지 않음
-    if (activeChatId && messages.length <= 1) {
-      // 이미 빈 대화가 있으면 그냥 그 대화를 계속 사용
-      return;
-    }
-
+  // 새 채팅 생성 함수
+  const createNewChat = async (initialMessage) => {
     try {
       setLoading(true);
       // 백엔드 API 호출하여 새 채팅 생성
@@ -128,19 +122,30 @@ const ChatAssistant = () => {
       setActiveChatId(newChatId);
 
       // URL 변경
-      navigate(`/chat/${newChatId}`);
+      navigate(`/chat/${newChatId}`, { replace: true });
 
-      // 메시지 초기화
-      setMessages([
-        {
-          sender: 'assistant',
-          text: '안녕하세요! 고용노동 정책 어시스턴트입니다. 어떤 정책에 관심이 있으신가요?',
-          timestamp: new Date().toISOString()
-        }
-      ]);
+      // 임시 채팅 모드 해제
+      setIsTemporaryChat(false);
+
+      // 초기 메시지가 있는 경우, 그 메시지로 채팅 시작
+      if (initialMessage) {
+        return newChatId;
+      } else {
+        // 초기 메시지가 없으면 기본 인사말만 설정
+        setMessages([
+          {
+            sender: 'assistant',
+            text: '안녕하세요! 고용노동 정책 어시스턴트입니다. 어떤 정책에 관심이 있으신가요?',
+            timestamp: new Date().toISOString()
+          }
+        ]);
+      }
+      
+      return newChatId;
     } catch (error) {
       console.error('새 채팅 생성 실패:', error);
       alert('새 채팅을 생성하는 데 문제가 발생했습니다.');
+      return null;
     } finally {
       setLoading(false);
     }
@@ -155,14 +160,39 @@ const ChatAssistant = () => {
 
   // chatId 변경 감지 및 메시지 로드
   useEffect(() => {
-    if (chatId && chatId !== 'new') {
+    if (chatId === 'temp') {
+      // 임시 채팅 모드 설정
+      setIsTemporaryChat(true);
+      setActiveChatId(null);
+      
+      // 임시 채팅의 초기 인사말 설정
+      setMessages([
+        {
+          sender: 'assistant',
+          text: '안녕하세요! 고용노동 정책 어시스턴트입니다. 어떤 정책에 관심이 있으신가요?',
+          timestamp: new Date().toISOString()
+        }
+      ]);
+    } else if (chatId && chatId !== 'new') {
+      // 일반 채팅인 경우
+      setIsTemporaryChat(false);
       setActiveChatId(parseInt(chatId));
-      fetchMessages(parseInt(chatId));
+      fetchMessages(parseInt(chatId))
+        .catch(error => {
+          console.error('채팅 메시지 로드 실패:', error);
+          // 메시지 로드 실패 시 임시 채팅으로 리다이렉트
+          if (error.response && error.response.status === 404) {
+            console.log('존재하지 않는 채팅입니다. 임시 채팅으로 이동합니다.');
+            navigate('/chat/temp', { replace: true });
+          }
+        });
     } else if (chatId === 'new') {
+      // 새 채팅 생성 요청인 경우
+      setIsTemporaryChat(false);
       createNewChat();
     } else if (!chatId && chats.length > 0) {
-      // 채팅 ID가 없고 채팅 목록이 있으면 첫 번째 채팅으로 이동
-      navigate(`/chat/${chats[0].id}`);
+      // 채팅 ID가 없고 채팅 목록이 있으면 임시 채팅으로 이동
+      navigate('/chat/temp', { replace: true });
     }
   }, [chatId, chats.length]);
 
@@ -170,8 +200,6 @@ const ChatAssistant = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  // 초기 인사말 useEffect 제거 (불필요한 메시지 생성 방지)
 
   const handleInputChange = (e) => {
     setInput(e.target.value);
@@ -181,18 +209,6 @@ const ChatAssistant = () => {
     e.preventDefault();
     if (!input.trim()) return;
 
-    // 채팅 ID가 없으면 새 채팅 생성
-    if (!activeChatId) {
-      try {
-        const response = await api.post('/chat/create');
-        setActiveChatId(response.data.id);
-        navigate(`/chat/${response.data.id}`);
-      } catch (error) {
-        console.error('새 채팅 생성 실패:', error);
-        return;
-      }
-    }
-
     // 사용자 메시지 추가
     const userMessage = {
       sender: 'user',
@@ -200,13 +216,25 @@ const ChatAssistant = () => {
       timestamp: new Date().toISOString()
     };
     setMessages(prev => [...prev, userMessage]);
+    
+    const userInput = input;
     setInput('');
     setLoading(true);
 
     try {
+      let chatIdToUse = activeChatId;
+      
+      // 임시 채팅이면 새 채팅 생성
+      if (isTemporaryChat) {
+        chatIdToUse = await createNewChat(userInput);
+        if (!chatIdToUse) {
+          throw new Error('채팅 생성 실패');
+        }
+      }
+
       // 백엔드 API 호출
-      const response = await api.post(`/chat/${activeChatId}/message`, {
-        query: input
+      const response = await api.post(`/chat/${chatIdToUse}/message`, {
+        query: userInput
       });
 
       // 응답 추가
@@ -248,7 +276,7 @@ const ChatAssistant = () => {
       <div className={`chat-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
           <h2>대화 목록</h2>
-          <button className="new-chat-btn" onClick={createNewChat}>새 대화</button>
+          <button className="new-chat-btn" onClick={() => navigate('/chat/temp')}>새 대화</button>
         </div>
         <div className="chat-list">
           {chats.length > 0 ? (
@@ -287,8 +315,6 @@ const ChatAssistant = () => {
       >
         {sidebarOpen ? '◀' : '▶'}
       </button>
-
-
 
       {/* 채팅 메인 영역 */}
       <div className="chat-container">
@@ -351,7 +377,7 @@ const ChatAssistant = () => {
           </button>
         </form>
       </div>
-    </div >
+    </div>
   );
 };
 

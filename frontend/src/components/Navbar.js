@@ -12,6 +12,13 @@ const Navbar = () => {
     navigate('/login');
   };
   
+  // 챗봇 상담 클릭 핸들러 - 임시 채팅으로 이동
+  const handleChatClick = (e) => {
+    e.preventDefault(); // 기본 동작 방지
+    // 임시 채팅 페이지로 이동 (DB에 저장하지 않음)
+    navigate('/chat/temp');
+  };
+  
   return (
     <nav className="navbar">
       <div className="navbar-logo">
@@ -22,11 +29,11 @@ const Navbar = () => {
           <Link to="/">홈</Link>
         </li>
         <li>
-          {/* "정책 검색"에서 "정책 추천"으로 변경 */}
           <Link to="/search">정책 추천</Link>
         </li>
         <li>
-          <Link to="/chat">챗봇 상담</Link>
+          {/* 임시 채팅 페이지로 이동 */}
+          <a href="#" onClick={handleChatClick} className="nav-link">챗봇 상담</a>
         </li>
         {user ? (
           <>
