@@ -18,6 +18,7 @@ class User(Base):
     # 관계 설정
     profiles = relationship("UserProfile", back_populates="user")
     notifications = relationship("Notification", back_populates="user")
+    chats = relationship("Chat", back_populates="user") 
 
 class UserProfile(Base):
     __tablename__ = "user_profiles"
@@ -79,3 +80,29 @@ class Notification(Base):
     
     # 관계 설정
     user = relationship("User", back_populates="notifications")
+
+class Chat(Base):
+    __tablename__ = "chats"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    title = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # 관계 설정
+    user = relationship("User", back_populates="chats")
+    messages = relationship("ChatMessage", back_populates="chat", cascade="all, delete-orphan")
+
+class ChatMessage(Base):
+    __tablename__ = "chat_messages"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    chat_id = Column(Integer, ForeignKey("chats.id"))
+    is_user = Column(Integer, default=0)  # 0: 시스템, 1: 사용자
+    content = Column(Text, nullable=False)
+    sources = Column(JSON, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    # 관계 설정
+    chat = relationship("Chat", back_populates="messages")
