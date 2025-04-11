@@ -11,6 +11,9 @@ const Profile = () => {
     gender: '',
     employmentStatus: '',
     region: '',
+    isDisabled: false,
+    isForeign: false,
+    familyStatus: '',
     notifyPolicyUpdates: false,
     notifyDeadlines: false,
     notifyNewPolicies: false
@@ -191,6 +194,27 @@ const Profile = () => {
                   {profileData.region === 'busan' && '부산'}
                   {profileData.region === 'incheon' && '인천'}
                   {!profileData.region && '-'}
+                </span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">장애인 여부</span>
+                <span className="info-value">
+                  {profileData.isDisabled ? '예' : '아니오'}
+                </span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">외국인 여부</span>
+                <span className="info-value">
+                  {profileData.isForeign ? '예' : '아니오'}
+                </span>
+              </div>
+              <div className="info-item">
+                <span className="info-label">가족 상황</span>
+                <span className="info-value">
+                  {profileData.familyStatus === 'parent' && '영유아 자녀 있음'}
+                  {profileData.familyStatus === 'single_parent' && '한부모'}
+                  {profileData.familyStatus === 'caregiver' && '주 양육자'}
+                  {!profileData.familyStatus && '-'}
                 </span>
               </div>
             </div>

@@ -29,7 +29,6 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
       }
     };
-
     loadUserFromToken();
   }, []);
 
@@ -37,21 +36,20 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setError(null);
-      
       // FormData로 변환 (OAuth2PasswordRequestForm 호환)
       const formData = new FormData();
       formData.append('username', email); // 백엔드는 username으로 email을 받음
       formData.append('password', password);
-      
+
       // 로그인 요청
       console.log('로그인 요청 URL:', `${API_URL}/auth/login`);
       const response = await axios.post(`${API_URL}/auth/login`, formData);
       console.log('로그인 응답:', response.data);
-      
+
       // 토큰 저장 및 사용자 정보 설정
       const token = response.data.access_token;
       localStorage.setItem('token', token);
-      
+
       // 사용자 정보 가져오기
       await fetchUserInfo(token);
       return true;
@@ -66,20 +64,22 @@ export const AuthProvider = ({ children }) => {
   const register = async (userData) => {
     try {
       setError(null);
-      
       // 백엔드 API에 맞게 데이터 변환
       const registerData = {
         email: userData.email,
         password: userData.password,
         full_name: userData.name, // name을 full_name으로 변환
-        profile: {  // profile 정보 추가
+        profile: { // profile 정보 추가
           age: userData.age,
           gender: userData.gender,
           employment_status: userData.employmentStatus,
-          region: userData.region
+          region: userData.region,
+          is_disabled: userData.isDisabled, // 장애인 여부 추가
+          is_foreign: userData.isForeign,   // 외국인 여부 추가
+          family_status: userData.familyStatus // 가족 상황 추가
         }
       };
-      
+
       // 회원가입 요청 - 디버깅 추가
       console.log('회원가입 요청 URL:', `${API_URL}/auth/register`);
       console.log('회원가입 데이터:', registerData);

@@ -5,7 +5,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
 from app.db.base import Base
-from app.db.models import User, Policy, PolicyChunk  # 모든 모델 임포트
+from app.db.models import User, Policy, PolicyChunk, UserProfile  # UserProfile 추가
 
 # 데이터베이스 엔진 생성
 engine = create_engine(settings.SQLALCHEMY_DATABASE_URI)

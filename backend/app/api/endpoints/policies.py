@@ -37,6 +37,10 @@ class ProfileModel(BaseModel):
     region: Optional[str] = None
     interests: Optional[List[str]] = None
     additional_info: Optional[dict] = None
+    # 추가된 필드들
+    is_disabled: Optional[bool] = None
+    is_foreign: Optional[bool] = None
+    family_status: Optional[str] = None
 
 class PolicyRecommendation(BaseModel):
     text: str

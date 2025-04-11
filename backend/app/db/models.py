@@ -29,6 +29,12 @@ class UserProfile(Base):
     gender = Column(String(10), nullable=True)
     region = Column(String(50), nullable=True)
     employment_status = Column(String(50), nullable=True)
+    
+    # 추가할 필드들
+    is_disabled = Column(Boolean, default=False)  # 장애인 여부
+    is_foreign = Column(Boolean, default=False)  # 외국인 여부
+    family_status = Column(String(50), nullable=True)  # 가족 상황 (parent, single_parent 등)
+    
     interests = Column(JSON, nullable=True)  # 관심 분야 저장
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

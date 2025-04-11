@@ -16,7 +16,10 @@ const PolicySearch = () => {
     age: '',
     gender: '',
     employment: '',
-    region: ''
+    region: '',
+    is_disabled: '',  // 추가
+    is_foreign: '',   // 추가
+    family_status: '' // 추가
   });
   
   // API 요청이 중복으로 발생하는 것을 방지하기 위한 ref
@@ -40,7 +43,10 @@ const PolicySearch = () => {
             age: profile.age || '',
             gender: profile.gender || '',
             employment: profile.employment_status || '',
-            region: profile.region || ''
+            region: profile.region || '',
+            is_disabled: profile.is_disabled !== undefined ? String(profile.is_disabled) : '',  // 추가
+            is_foreign: profile.is_foreign !== undefined ? String(profile.is_foreign) : '',    // 추가
+            family_status: profile.family_status || ''  // 추가
           });
 
           setProfileLoaded(true);
@@ -71,7 +77,10 @@ const PolicySearch = () => {
           age: filters.age ? (filters.age === 'youth' ? 25 : filters.age === 'middle' ? 45 : filters.age === 'senior' ? 65 : null) : null,
           gender: filters.gender,
           employment_status: filters.employment,
-          region: filters.region
+          region: filters.region,
+          is_disabled: filters.is_disabled === 'true',  // 추가
+          is_foreign: filters.is_foreign === 'true',    // 추가
+          family_status: filters.family_status || null  // 추가
         };
 
         const response = await api.post('/policies/recommend-vector/', profileData);
@@ -173,14 +182,33 @@ const PolicySearch = () => {
               <option value="student">학생</option>
             </select>
           </div>
+          
+          {/* 새로 추가된 필터들 */}
           <div className="filter-group">
-            <label>지역</label>
-            <select name="region" value={filters.region} onChange={handleFilterChange}>
-              <option value="">전국</option>
-              <option value="seoul">서울</option>
-              <option value="busan">부산</option>
-              <option value="incheon">인천</option>
-              {/* 다른 지역 추가 */}
+            <label>장애인 여부</label>
+            <select name="is_disabled" value={filters.is_disabled} onChange={handleFilterChange}>
+              <option value="">전체</option>
+              <option value="true">예</option>
+              <option value="false">아니오</option>
+            </select>
+          </div>
+          
+          <div className="filter-group">
+            <label>외국인 여부</label>
+            <select name="is_foreign" value={filters.is_foreign} onChange={handleFilterChange}>
+              <option value="">전체</option>
+              <option value="true">예</option>
+              <option value="false">아니오</option>
+            </select>
+          </div>
+          
+          <div className="filter-group">
+            <label>가족 상황</label>
+            <select name="family_status" value={filters.family_status} onChange={handleFilterChange}>
+              <option value="">전체</option>
+              <option value="parent">영유아 자녀 있음</option>
+              <option value="single_parent">한부모</option>
+              <option value="caregiver">주 양육자</option>
             </select>
           </div>
         </div>

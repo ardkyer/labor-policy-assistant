@@ -8,13 +8,16 @@ from app.db.models import User, UserProfile, Policy, Notification
 
 router = APIRouter()
 
-# 프로필 업데이트 모델
 class ProfileUpdate(BaseModel):
     name: Optional[str] = None
     age: Optional[str] = None
     gender: Optional[str] = None
     employment_status: Optional[str] = None
     region: Optional[str] = None
+    # 새로운 필드 추가
+    is_disabled: Optional[bool] = None
+    is_foreign: Optional[bool] = None
+    family_status: Optional[str] = None
     interests: Optional[Dict] = None
 
 @router.get("/me")
@@ -93,6 +96,10 @@ def update_profile(
             gender=profile_data.gender,
             employment_status=profile_data.employment_status,
             region=profile_data.region,
+            # 새 필드 추가
+            is_disabled=profile_data.is_disabled,
+            is_foreign=profile_data.is_foreign,
+            family_status=profile_data.family_status,
             interests=profile_data.interests or {}
         )
         db.add(profile)
@@ -106,6 +113,13 @@ def update_profile(
             profile.employment_status = profile_data.employment_status
         if profile_data.region is not None:
             profile.region = profile_data.region
+        # 새 필드 업데이트
+        if profile_data.is_disabled is not None:
+            profile.is_disabled = profile_data.is_disabled
+        if profile_data.is_foreign is not None:
+            profile.is_foreign = profile_data.is_foreign
+        if profile_data.family_status is not None:
+            profile.family_status = profile_data.family_status
         if profile_data.interests is not None:
             profile.interests = profile_data.interests
         db.add(profile)

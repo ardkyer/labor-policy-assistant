@@ -17,6 +17,9 @@ class ProfileCreate(BaseModel):
     gender: Optional[str] = None
     employment_status: Optional[str] = None
     region: Optional[str] = None
+    is_disabled: Optional[str] = None  # 추가
+    is_foreign: Optional[str] = None   # 추가
+    family_status: Optional[str] = None  # 추가
 
 # 회원가입 요청 모델
 class UserRegister(BaseModel):
@@ -91,12 +94,19 @@ def register_user(
             elif user_data.profile.age == "senior":
                 age_value = 70  # 노년 대표 나이
         
+        # 새 필드 처리 - 문자열 "true"/"false"를 불리언으로 변환
+        is_disabled = user_data.profile.is_disabled == "true"
+        is_foreign = user_data.profile.is_foreign == "true"
+        
         profile = UserProfile(
             user_id=new_user.id,
             age=age_value,
             gender=user_data.profile.gender,
             employment_status=user_data.profile.employment_status,
             region=user_data.profile.region,
+            is_disabled=is_disabled,  # 추가
+            is_foreign=is_foreign,    # 추가
+            family_status=user_data.profile.family_status,  # 추가
             interests={}  # 기본 빈 JSON 객체
         )
         db.add(profile)
@@ -143,6 +153,9 @@ def read_users_me(
             "gender": profile.gender,
             "employment_status": profile.employment_status,
             "region": profile.region,
+            "is_disabled": profile.is_disabled,  # 추가
+            "is_foreign": profile.is_foreign,    # 추가
+            "family_status": profile.family_status,  # 추가
             "interests": profile.interests or {}
         }
     }

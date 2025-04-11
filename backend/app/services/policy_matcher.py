@@ -32,15 +32,56 @@ class PolicyMatcher:
     
     def profile_to_query(self, profile: Dict[str, Any]) -> str:
         """사용자 프로필을 쿼리 문자열로 변환합니다."""
-        # 프로필 기반 쿼리 생성을 위한 LLM 호출
-        profile_text = "\n".join([f"{k}: {v}" for k, v in profile.items() if v])
+        # 카테고리 분류를 위한 설명 추가
+        profile_categories = []
         
+        # 연령 기반 카테고리
+        if profile.get("age"):
+            age = int(profile.get("age", 0))
+            if age < 35:
+                profile_categories.append("청년")
+            elif age >= 50:
+                profile_categories.append("고령자/신중년")
+        
+        # 다른 특성 기반 카테고리
+        if profile.get("is_disabled") == True:
+            profile_categories.append("장애인")
+        
+        if profile.get("gender") == "female":
+            profile_categories.append("여성")
+            
+        if profile.get("family_status") in ["parent", "single_parent"]:
+            profile_categories.append("육아지원")
+        
+        if profile.get("is_foreign") == True:
+            profile_categories.append("외국인근로자")
+        
+        if profile.get("employment_status") == "business":
+            profile_categories.append("사업주")
+        
+        # 카테고리 문자열 생성
+        categories_str = ", ".join(profile_categories) if profile_categories else "해당 없음"
+        
+        # 프로필 텍스트 구성
+        profile_text = f"""
+        연령: {profile.get('age', '정보 없음')}
+        성별: {profile.get('gender', '정보 없음')}
+        고용상태: {profile.get('employment_status', '정보 없음')}
+        장애인 여부: {'예' if profile.get('is_disabled') else '아니오'}
+        외국인 여부: {'예' if profile.get('is_foreign') else '아니오'}
+        가족 상황: {profile.get('family_status', '정보 없음')}
+        관련 정책 카테고리: {categories_str}
+        """
+        
+        # LLM 프롬프트 구성
         prompt = f"""
         다음은 사용자 프로필 정보입니다:
         {profile_text}
         
         이 사용자에게 관련될 수 있는 고용노동 정책을 찾기 위한 검색어를 생성해주세요.
-        사용자의 연령, 고용 상태, 산업 분야, 요구사항 등을 고려하여 작성하세요.
+        사용자에게 해당되는 다음 카테고리 중 관련 항목을 고려하세요: {categories_str}
+        
+        사용자의 연령, 고용 상태, 특수 상황(장애, 외국인, 가족 상황 등)을 고려하여 작성하세요.
         검색어만 작성하고 다른 설명은 포함하지 마세요.
         """
         
