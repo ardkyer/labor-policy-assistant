@@ -131,29 +131,49 @@ class PolicyMatcher:
         # 쿼리 임베딩 생성
         query_embedding = self.get_embedding(query)
         
-        # Pinecone에서 유사한 정책 검색
+        # Pinecone에서 유사한 정책 검색 - 더 많은 결과를 가져옴 (목차 페이지 필터링 후 충분한 결과 확보를 위해)
         results = self.index.query(
             vector=query_embedding,
-            top_k=top_k,
+            top_k=top_k * 3,  # 3배 더 많은 결과 가져오기
             include_metadata=True
         )
         
-        # 결과 가공
+        # 결과 가공 - 페이지 번호가 20 이하인 항목 제외
         recommendations = []
         for match in results.matches:
+            # 페이지 번호 확인
+            page = match.metadata.get("page", "0")
+            try:
+                page_num = int(page)
+                # 목차 페이지(1-20) 건너뛰기
+                if page_num <= 20:
+                    continue
+            except (ValueError, TypeError):
+                # 페이지 번호를 파싱할 수 없으면 포함
+                pass
+                
             policy_text = match.metadata.get("text", "")
-            
-            # 추가: 연관성 설명 생성 (선택 사항, API 호출을 늘리므로 필요에 따라 사용)
-            # relevance = self.generate_relevance_explanation(profile, policy_text)
             
             recommendations.append({
                 "text": policy_text,
-                "page": match.metadata.get("page", "정보 없음"),
+                "page": page,
                 "score": match.score,
                 "policy_keywords": query, # 생성된 쿼리 키워드도 함께 반환
-                "policy_id": match.metadata.get("policy_id", ""),
-                "title": match.metadata.get("title", "")
-                # "relevance": relevance  # 선택 사항
+                "policy_id": match.metadata.get("policy_id", "") or match.id,
+                "title": match.metadata.get("title", "") or self.extract_title_from_text(policy_text)
             })
+            
+            # 원하는 개수의 추천 항목을 얻으면 중단
+            if len(recommendations) >= top_k:
+                break
         
-        return recommendations
+        return recommendations[:top_k]  # 원하는 개수만큼만 반환
+    
+    def extract_title_from_text(self, text: str) -> str:
+        """텍스트에서 제목 추출 (첫번째 유의미한 줄 사용)"""
+        lines = text.strip().split("\n")
+        for line in lines:
+            line = line.strip()
+            if line and len(line) < 100:  # 적당한 길이의 줄 찾기
+                return line
+        return "제목 없음"

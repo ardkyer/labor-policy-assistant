@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { AuthContext } from '../context/AuthContext';
@@ -9,128 +9,94 @@ const PolicySearch = () => {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
   const [policies, setPolicies] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [profileLoaded, setProfileLoaded] = useState(false);
-  const [filters, setFilters] = useState({
-    age: '',
-    gender: '',
-    employment: '',
-    region: '',
-    is_disabled: '',  // 추가
-    is_foreign: '',   // 추가
-    family_status: '' // 추가
-  });
-  
-  // API 요청이 중복으로 발생하는 것을 방지하기 위한 ref
-  const fetchInProgress = useRef(false);
-  const isMounted = useRef(false);
+  const [savedPolicies, setSavedPolicies] = useState([]);
 
-  // 프로필 정보 가져오기
+  // 저장된 추천 정책 불러오기
   useEffect(() => {
-    if (isMounted.current) return;
-    isMounted.current = true;
-
-    const fetchUserProfile = async () => {
-      try {
-        if (user) {
-          const response = await api.get('/auth/me');
-          const userData = response.data;
-          const profile = userData.profile || {};
-
-          // 프로필 정보로 필터 초기화
-          setFilters({
-            age: profile.age || '',
-            gender: profile.gender || '',
-            employment: profile.employment_status || '',
-            region: profile.region || '',
-            is_disabled: profile.is_disabled !== undefined ? String(profile.is_disabled) : '',  // 추가
-            is_foreign: profile.is_foreign !== undefined ? String(profile.is_foreign) : '',    // 추가
-            family_status: profile.family_status || ''  // 추가
-          });
-
-          setProfileLoaded(true);
-        }
-      } catch (err) {
-        console.error('프로필 정보 로딩 실패:', err);
-        setProfileLoaded(true);
-      }
-    };
-
-    fetchUserProfile();
-
-    return () => {
-      isMounted.current = false;
-    };
-  }, [user]);
-
-  // 정책 불러오기
-  useEffect(() => {
-    if (!profileLoaded || fetchInProgress.current) return;
-
-    const fetchPolicies = async () => {
-      fetchInProgress.current = true;
+    const fetchRecommendedPolicies = async () => {
       try {
         setLoading(true);
-
-        const profileData = {
-          age: filters.age ? (filters.age === 'youth' ? 25 : filters.age === 'middle' ? 45 : filters.age === 'senior' ? 65 : null) : null,
-          gender: filters.gender,
-          employment_status: filters.employment,
-          region: filters.region,
-          is_disabled: filters.is_disabled === 'true',  // 추가
-          is_foreign: filters.is_foreign === 'true',    // 추가
-          family_status: filters.family_status || null  // 추가
-        };
-
-        const response = await api.post('/policies/recommend-vector/', profileData);
-
-        if (response.data && response.data.recommendations) {
-          // 목차 페이지(1-20페이지) 제외 및 중복 제거
-          const uniquePolicies = [];
-          const policyIds = new Set();
-          
-          response.data.recommendations.forEach(recommendation => {
-            const policyId = recommendation.policy_id || `${recommendation.title}-${recommendation.page}`;
-            const pageNumber = parseInt(recommendation.page) || 0;
-            
-            // 목차 페이지(1-20페이지) 제외 및 중복 제거
-            if (pageNumber > 20 && !policyIds.has(policyId)) {
-              policyIds.add(policyId);
-              uniquePolicies.push({
-                id: policyId,
-                title: recommendation.title || '맞춤 정책 추천',
-                description: recommendation.text || '',
-                category: '',
-                source_page: recommendation.page || '',
-                score: recommendation.score
-              });
-            }
-          });
-          
-          // 최대 4개만 표시
-          setPolicies(uniquePolicies.slice(0, 4));
+        // 새로운 엔드포인트로 사전 계산된 추천 정책 가져오기
+        const response = await api.get('/policies/recommended/');
+        
+        if (response.data && response.data.length > 0) {
+          setPolicies(response.data.map(policy => ({
+            id: policy.id,
+            title: policy.title,
+            description: policy.content,
+            category: policy.category || '기타',
+            source_page: policy.page || '',
+            is_saved: policy.is_saved
+          })));
         } else {
           setPolicies([]);
         }
+        
+        // 저장된 정책도 함께 가져오기
+        const savedResponse = await api.get('/policies/saved/');
+        if (savedResponse.data) {
+          setSavedPolicies(savedResponse.data);
+        }
       } catch (err) {
-        setError('맞춤 정책을 불러오는데 실패했습니다.');
+        setError('추천 정책을 불러오는데 실패했습니다.');
         console.error('정책 추천 API 오류:', err);
       } finally {
         setLoading(false);
-        fetchInProgress.current = false;
       }
     };
 
-    fetchPolicies();
-  }, [filters, profileLoaded]);
+    if (user) {
+      fetchRecommendedPolicies();
+    }
+  }, [user]);
 
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    setFilters(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  // 정책 저장 처리
+  const handleSavePolicy = async (policyId, isSaved) => {
+    try {
+      if (isSaved) {
+        await api.delete(`/policies/save/${policyId}`);
+        // 저장 상태 업데이트
+        setPolicies(policies.map(policy => 
+          policy.id === policyId ? {...policy, is_saved: false} : policy
+        ));
+      } else {
+        await api.post(`/policies/save/${policyId}`);
+        // 저장 상태 업데이트
+        setPolicies(policies.map(policy => 
+          policy.id === policyId ? {...policy, is_saved: true} : policy
+        ));
+      }
+    } catch (err) {
+      console.error('정책 저장/삭제 오류:', err);
+    }
+  };
+
+  // 추천 정책 강제 갱신
+  const refreshRecommendations = async () => {
+    try {
+      setLoading(true);
+      await api.post('/policies/refresh-recommendations/');
+      
+      // 갱신된 추천 정책 다시 불러오기
+      const response = await api.get('/policies/recommended/');
+      if (response.data) {
+        setPolicies(response.data.map(policy => ({
+          id: policy.id,
+          title: policy.title,
+          description: policy.content,
+          category: policy.category || '기타',
+          source_page: policy.page || '',
+          is_saved: policy.is_saved
+        })));
+      }
+    } catch (err) {
+      setError('추천 정책 갱신에 실패했습니다.');
+      console.error('정책 갱신 오류:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 챗봇 상담으로 이동
@@ -140,7 +106,6 @@ const PolicySearch = () => {
 
   // PDF 다운로드 함수
   const downloadPdf = () => {
-    // PDF 다운로드 링크 (고용노동부 사이트)
     window.open('https://www.moel.go.kr/info/publicdata/majorpublish/majorPublishView.do?bbs_seq=20250200573', '_blank');
   };
 
@@ -149,69 +114,7 @@ const PolicySearch = () => {
       <h1>맞춤 정책 추천</h1>
 
       <div className="recommendation-info">
-        <p>회원님의 프로필 정보를 바탕으로 맞춤 정책을 추천해 드립니다.</p>
-      </div>
-
-      <div className="filters-section">
-        <h3>추천 필터</h3>
-        <div className="filter-controls">
-          <div className="filter-group">
-            <label>연령대</label>
-            <select name="age" value={filters.age} onChange={handleFilterChange}>
-              <option value="">전체</option>
-              <option value="youth">청년 (만 19-34세)</option>
-              <option value="middle">중장년 (만 35-64세)</option>
-              <option value="senior">노년 (만 65세 이상)</option>
-            </select>
-          </div>
-          <div className="filter-group">
-            <label>성별</label>
-            <select name="gender" value={filters.gender} onChange={handleFilterChange}>
-              <option value="">전체</option>
-              <option value="male">남성</option>
-              <option value="female">여성</option>
-            </select>
-          </div>
-          <div className="filter-group">
-            <label>고용상태</label>
-            <select name="employment" value={filters.employment} onChange={handleFilterChange}>
-              <option value="">전체</option>
-              <option value="employed">재직자</option>
-              <option value="unemployed">구직자</option>
-              <option value="business">자영업자</option>
-              <option value="student">학생</option>
-            </select>
-          </div>
-          
-          {/* 새로 추가된 필터들 */}
-          <div className="filter-group">
-            <label>장애인 여부</label>
-            <select name="is_disabled" value={filters.is_disabled} onChange={handleFilterChange}>
-              <option value="">전체</option>
-              <option value="true">예</option>
-              <option value="false">아니오</option>
-            </select>
-          </div>
-          
-          <div className="filter-group">
-            <label>외국인 여부</label>
-            <select name="is_foreign" value={filters.is_foreign} onChange={handleFilterChange}>
-              <option value="">전체</option>
-              <option value="true">예</option>
-              <option value="false">아니오</option>
-            </select>
-          </div>
-          
-          <div className="filter-group">
-            <label>가족 상황</label>
-            <select name="family_status" value={filters.family_status} onChange={handleFilterChange}>
-              <option value="">전체</option>
-              <option value="parent">영유아 자녀 있음</option>
-              <option value="single_parent">한부모</option>
-              <option value="caregiver">주 양육자</option>
-            </select>
-          </div>
-        </div>
+        <p>회원님의 프로필에 맞춰 저장된 맞춤 정책을 확인하세요.</p>
       </div>
 
       {/* 정책 카드 그리드 */}
@@ -226,13 +129,16 @@ const PolicySearch = () => {
             {policies.length > 0 ? (
               policies.map((policy, index) => (
                 <div className="policy-card-wrapper" key={`policy-${policy.id}-${index}`}>
-                  <PolicyCard policy={policy} />
+                  <PolicyCard 
+                    policy={policy} 
+                    onSave={() => handleSavePolicy(policy.id, policy.is_saved)}
+                  />
                 </div>
               ))
             ) : (
               <div className="no-results">
-                <p>현재 조건에 맞는 추천 정책이 없습니다.</p>
-                <p>필터 조건을 변경하여 다른 정책을 확인해보세요.</p>
+                <p>추천 정책이 없습니다.</p>
+                <p>프로필 정보를 업데이트하거나 '추천 정책 갱신하기' 버튼을 클릭해보세요.</p>
               </div>
             )}
             
@@ -258,6 +164,23 @@ const PolicySearch = () => {
           </>
         )}
       </div>
+
+      {/* 저장된 정책 섹션 */}
+      {savedPolicies.length > 0 && (
+        <div className="saved-policies-section">
+          <h2>내가 저장한 정책</h2>
+          <div className="saved-policies-grid">
+            {savedPolicies.map((policy, index) => (
+              <div className="policy-card-wrapper" key={`saved-${policy.id}-${index}`}>
+                <PolicyCard 
+                  policy={{...policy, is_saved: true}} 
+                  onSave={() => handleSavePolicy(policy.id, true)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

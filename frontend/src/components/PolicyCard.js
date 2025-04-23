@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import './PolicyCard.css';
 
-const PolicyCard = ({ policy }) => {
+const PolicyCard = ({ policy, onSave }) => {
   const [showDetails, setShowDetails] = useState(false);
-
+  
   // 정책 제목 정리: 번호와 같은 괄호 내용 제거
   const cleanTitle = (title) => {
     if (!title) return '';
     // 연속된 번호 (숫자) 패턴 제거
     return title.replace(/\(\d+\)\s*\(\d+\)\s*/g, '').replace(/\(\d+\)/g, '').trim();
   };
-
+  
   // 카테고리 추출 (제목에서 주요 키워드 추출)
   const extractCategory = (title) => {
     const keywords = [
@@ -28,8 +28,7 @@ const PolicyCard = ({ policy }) => {
         return keyword.category;
       }
     }
-    
-    return '고용정책';
+    return policy.category || '고용정책';
   };
   
   // 카테고리에 맞는 아이콘 선택
@@ -49,28 +48,24 @@ const PolicyCard = ({ policy }) => {
   // 정책 요약 내용 추출 (첫 두 문장 또는 50자)
   const getSummary = (description) => {
     if (!description) return '';
-    
     // 괄호의 번호 패턴과 불필요한 기호 제거
     const cleaned = description.replace(/\(\d+\)/g, '').replace(/\s+/g, ' ').trim();
-    
     // 문장 단위로 나누기
     const sentences = cleaned.split(/(?<=[.!?])\s+/);
-    
     // 첫 2문장 또는 50자 이내로 요약
     if (sentences.length > 0) {
       const firstTwoSentences = sentences.slice(0, 2).join(' ');
       return firstTwoSentences.length > 80 ? firstTwoSentences.substring(0, 80) + '...' : firstTwoSentences;
     }
-    
     return cleaned.length > 80 ? cleaned.substring(0, 80) + '...' : cleaned;
   };
   
   // 정책에서 지원 대상, 지원 내용, 신청 방법 등 추출
   const extractKeyInfo = (description) => {
     const info = {
-      target: null,    // 지원 대상
-      benefits: null,  // 지원 내용
-      process: null    // 신청 방법
+      target: null, // 지원 대상
+      benefits: null, // 지원 내용
+      process: null // 신청 방법
     };
     
     if (!description) return info;
@@ -130,30 +125,34 @@ const PolicyCard = ({ policy }) => {
   const title = cleanTitle(policy.title);
   const category = extractCategory(title);
   const categoryIcon = getCategoryIcon(category);
-  const summary = getSummary(policy.description);
-  const keyInfo = extractKeyInfo(policy.description);
+  const summary = getSummary(policy.description || policy.content); // policy.content도 체크
+  const keyInfo = extractKeyInfo(policy.description || policy.content);
   
   // PDF 페이지 정보
-  const pageInfo = policy.source_page ? `PDF 페이지: ${policy.source_page}` : '';
-
+  const pageInfo = policy.source_page || policy.page ? `PDF 페이지: ${policy.source_page || policy.page}` : '';
+  
   // 상세 정보 토글
   const toggleDetails = () => {
     setShowDetails(!showDetails);
   };
-
+  
+  // 관심 정책 저장 처리
+  const handleSave = () => {
+    if (onSave) {
+      onSave(policy.id, policy.is_saved);
+    }
+  };
+  
   return (
     <div className="policy-card" data-category={category}>
       <div className="policy-header">
         <div className="category-icon">{categoryIcon}</div>
         <span className="policy-category">{category}</span>
       </div>
-      
       <div className="policy-content">
         <h3 className="policy-title">{title}</h3>
-        
         {/* 요약 정보 */}
         <p className="policy-summary">{summary}</p>
-        
         {/* 상세 정보 (키 정보) */}
         <div className={`policy-details ${showDetails ? 'expanded' : ''}`}>
           {keyInfo.target && (
@@ -165,7 +164,6 @@ const PolicyCard = ({ policy }) => {
               </div>
             </div>
           )}
-          
           {keyInfo.benefits && (
             <div className="key-info">
               <span className="key-info-icon">💰</span>
@@ -175,7 +173,6 @@ const PolicyCard = ({ policy }) => {
               </div>
             </div>
           )}
-          
           {keyInfo.process && (
             <div className="key-info">
               <span className="key-info-icon">📝</span>
@@ -185,7 +182,6 @@ const PolicyCard = ({ policy }) => {
               </div>
             </div>
           )}
-          
           {pageInfo && (
             <div className="policy-page-info">
               {pageInfo}
@@ -193,15 +189,19 @@ const PolicyCard = ({ policy }) => {
           )}
         </div>
       </div>
-      
       <div className="policy-actions">
-        <button 
-          className="btn-toggle-details" 
+        <button
+          className="btn-toggle-details"
           onClick={toggleDetails}
         >
           {showDetails ? '접기' : '상세 정보'}
         </button>
-        <button className="btn-save">관심 정책 등록</button>
+        <button 
+          className={`btn-save ${policy.is_saved ? 'saved' : ''}`}
+          onClick={handleSave}
+        >
+          {policy.is_saved ? '관심 정책 해제' : '관심 정책 등록'}
+        </button>
       </div>
     </div>
   );

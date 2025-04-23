@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, DateTime, Float, JSON
+from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, DateTime, Float, JSON, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
 
@@ -19,6 +19,8 @@ class User(Base):
     profiles = relationship("UserProfile", back_populates="user")
     notifications = relationship("Notification", back_populates="user")
     chats = relationship("Chat", back_populates="user") 
+    saved_policies = relationship("SavedPolicy", back_populates="user", cascade="all, delete-orphan")
+    recommended_policies = relationship("RecommendedPolicy", back_populates="user", cascade="all, delete-orphan")
 
 class UserProfile(Base):
     __tablename__ = "user_profiles"
@@ -29,6 +31,7 @@ class UserProfile(Base):
     gender = Column(String(10), nullable=True)
     region = Column(String(50), nullable=True)
     employment_status = Column(String(50), nullable=True)
+    profile_type_id = Column(Integer, ForeignKey("profile_types.id"), nullable=True)
     
     # 추가할 필드들
     is_disabled = Column(Boolean, default=False)  # 장애인 여부
@@ -41,6 +44,8 @@ class UserProfile(Base):
     
     # 관계 설정
     user = relationship("User", back_populates="profiles")
+    profile_type_id = Column(Integer, ForeignKey("profile_types.id"), nullable=True)
+    profile_type = relationship("ProfileType")
 
 class Policy(Base):
     __tablename__ = "policies"
@@ -112,3 +117,81 @@ class ChatMessage(Base):
     
     # 관계 설정
     chat = relationship("Chat", back_populates="messages")
+
+class ProfileType(Base):
+    __tablename__ = "profile_types"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    age_group = Column(String(20), nullable=False)  # '청년', '중장년', '노년'
+    gender = Column(String(20), nullable=False)     # '남성', '여성', '기타'
+    employment_status = Column(String(20), nullable=False)  # '재직자', '구직자', '자영업자', '학생'
+    is_disabled = Column(Boolean, default=False)
+    is_foreign = Column(Boolean, default=False)
+    family_status = Column(String(50), nullable=False)  # '영유아 자녀 있음', '한부모', '주 양육자', '해당 없음'
+    
+    # 고유 제약 조건 - 모든 필드의 조합이 고유해야 함
+    __table_args__ = (
+        UniqueConstraint(
+            'age_group', 'gender', 'employment_status', 
+            'is_disabled', 'is_foreign', 'family_status',
+            name='unique_profile_type'
+        ),
+    )
+
+class ProfileRecommendation(Base):
+    __tablename__ = "profile_recommendations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    profile_type_id = Column(Integer, ForeignKey("profile_types.id", ondelete="CASCADE"), nullable=False)
+    policy_id = Column(String(255), nullable=False)  # Pinecone의 벡터 ID
+    policy_title = Column(String(255), nullable=False)
+    policy_content = Column(Text, nullable=False)
+    page_number = Column(String(50), nullable=True)
+    category = Column(String(100), nullable=True)
+    relevance_score = Column(Float, nullable=True)
+    rank_order = Column(Integer, nullable=False)  # 추천 순위 (1-5)
+    
+    # 관계 설정
+    profile_type = relationship("ProfileType")
+    
+    # 중복 저장 방지를 위한 유니크 제약 조건
+    __table_args__ = (
+        UniqueConstraint('profile_type_id', 'rank_order', name='unique_profile_recommendation_rank'),
+    )
+
+class RecommendedPolicy(Base):
+    __tablename__ = "recommended_policies"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    policy_id = Column(String(255), nullable=False)  # Pinecone의 벡터 ID
+    policy_title = Column(String(255), nullable=False)
+    policy_content = Column(Text, nullable=False)
+    page_number = Column(String(50), nullable=True)
+    category = Column(String(100), nullable=True)
+    relevance_score = Column(Float, nullable=True)
+    recommended_at = Column(DateTime, default=datetime.utcnow)
+    
+    # 관계 설정
+    user = relationship("User", back_populates="recommended_policies")
+    
+    # 중복 저장 방지를 위한 유니크 제약 조건
+    __table_args__ = (
+        UniqueConstraint('user_id', 'policy_id', name='unique_user_policy_rec'),
+    )
+
+class SavedPolicy(Base):
+    __tablename__ = "saved_policies"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    policy_id = Column(String(255), nullable=False)  # Pinecone의 벡터 ID
+    saved_at = Column(DateTime, default=datetime.utcnow)
+    
+    # 관계 설정
+    user = relationship("User", back_populates="saved_policies")
+    
+    # 중복 저장 방지를 위한 유니크 제약 조건
+    __table_args__ = (
+        UniqueConstraint('user_id', 'policy_id', name='unique_user_policy'),
+    )

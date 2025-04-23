@@ -1,10 +1,20 @@
 from typing import Any, List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from app.api.deps import get_db, get_current_user
-from app.db.models import Policy, User
+from app.db.models import Policy, ProfileRecommendation, User, UserProfile
 from app.services.policy_matcher import PolicyMatcher
 from pydantic import BaseModel
+from app.schemas.policy import PolicyDisplay
+
+from app.services.policy_service import (
+    get_user_recommended_policies, 
+    save_policy, 
+    unsave_policy, 
+    get_saved_policies,
+    is_policy_saved,
+    create_user_policy_recommendations
+)
 
 router = APIRouter()
 
@@ -190,3 +200,95 @@ async def recommend_policies_vector(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+@router.get("/recommended/", response_model=List[PolicyDisplay])
+def get_recommended_policies(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """사용자 프로필 유형에 기반한 미리 계산된 추천 정책 가져오기"""
+    # 사용자 프로필 가져오기
+    user_profile = db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
+    
+    if not user_profile or not user_profile.profile_type_id:
+        raise HTTPException(status_code=404, detail="프로필 정보가 없습니다")
+    
+    # 프로필 유형에 맞는 미리 계산된 추천 가져오기
+    recommendations = db.query(ProfileRecommendation).filter(
+        ProfileRecommendation.profile_type_id == user_profile.profile_type_id
+    ).order_by(ProfileRecommendation.rank_order).all()
+    
+    # 저장된 정책 ID 목록 가져오기
+    saved_policy_ids = {
+        p.policy_id for p in get_saved_policies(db, current_user.id)
+    }
+    
+    # 반환 형식으로 변환
+    result = []
+    for rec in recommendations:
+        result.append(PolicyDisplay(
+            id=rec.policy_id,
+            title=rec.policy_title,
+            content=rec.policy_content,
+            page=rec.page_number,
+            category=rec.category,
+            is_saved=rec.policy_id in saved_policy_ids
+        ))
+    
+    return result
+
+@router.post("/refresh-recommendations/", status_code=status.HTTP_200_OK)
+def refresh_recommended_policies(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """사용자 추천 정책 강제 갱신"""
+    create_user_policy_recommendations(db, current_user.id)
+    return {"message": "추천 정책이 갱신되었습니다."}
+
+@router.post("/save/{policy_id}", status_code=status.HTTP_200_OK)
+def save_user_policy(
+    policy_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """정책을 사용자의 관심 목록에 저장"""
+    save_policy(db, current_user.id, policy_id)
+    return {"message": "정책이 저장되었습니다."}
+
+@router.delete("/save/{policy_id}", status_code=status.HTTP_200_OK)
+def unsave_user_policy(
+    policy_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """정책을 사용자의 관심 목록에서 제거"""
+    success = unsave_policy(db, current_user.id, policy_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="저장된 정책을 찾을 수 없습니다.")
+    return {"message": "정책이 관심 목록에서 제거되었습니다."}
+
+@router.get("/saved/", response_model=List[PolicyDisplay])
+def get_user_saved_policies(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """사용자가 저장한 관심 정책 목록 가져오기"""
+    from app.services.vector_search import get_policy_by_id
+    
+    saved_policies = get_saved_policies(db, current_user.id)
+    
+    result = []
+    for saved in saved_policies:
+        policy_data = get_policy_by_id(saved.policy_id)
+        if policy_data:
+            result.append(PolicyDisplay(
+                id=saved.policy_id,
+                title=policy_data.get("title", "제목 없음"),
+                content=policy_data.get("content", ""),
+                page=policy_data.get("page"),
+                category=policy_data.get("category", "기타"),
+                is_saved=True
+            ))
+    
+    return result

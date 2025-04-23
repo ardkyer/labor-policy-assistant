@@ -13,8 +13,8 @@ PINECONE_ENVIRONMENT = os.getenv("PINECONE_ENVIRONMENT", "us-west1-gcp")
 INDEX_NAME = os.getenv("PINECONE_INDEX_NAME", "labor-policy")
 
 # 작업 디렉토리 설정 - 네이버 OCR 결과물 사용
-work_dir = "work_labor_naver_71~80"
-merged_file = os.path.join(work_dir, "labor_71~80_text.txt")
+work_dir = "work_labor_naver_311~319"
+merged_file = os.path.join(work_dir, "labor_311~319_text.txt")
 
 # 텍스트 파일 읽기
 with open(merged_file, 'r', encoding='utf-8') as f:
