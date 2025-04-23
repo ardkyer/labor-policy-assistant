@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, List
 from pinecone import Pinecone
 import os
 from dotenv import load_dotenv
@@ -66,3 +66,57 @@ def extract_category(text: str) -> str:
                 return category
     
     return "기타"
+
+def search_policies(query: str, top_k: int = 5, user_profile: Optional[Dict] = None) -> List[Dict[str, Any]]:
+    """정책 검색 및 결과 가공"""
+    try:
+        # Pinecone 초기화
+        pc = Pinecone(api_key=PINECONE_API_KEY)
+        index = pc.Index(INDEX_NAME)
+        
+        # 임베딩 생성 (OpenAI API 호출 필요)
+        from app.services.policy_matcher import PolicyMatcher
+        policy_matcher = PolicyMatcher()
+        query_embedding = policy_matcher.get_embedding(query)
+        
+        # 벡터 검색
+        results = index.query(
+            vector=query_embedding,
+            top_k=top_k * 2,  # 목차 페이지 필터링 위해 더 많이 가져옴
+            include_metadata=True
+        )
+        
+        # 결과 가공
+        search_results = []
+        for match in results.matches:
+            # 페이지 번호 확인 (목차 페이지 건너뛰기)
+            page = match.metadata.get("page", "0")
+            try:
+                page_num = int(page)
+                if page_num <= 20:  # 목차 페이지 건너뛰기
+                    continue
+            except (ValueError, TypeError):
+                pass
+                
+            policy_text = match.metadata.get("text", "")
+            
+            # 기본 정보
+            policy_info = {
+                "id": match.id,
+                "content": policy_text,
+                "page": match.metadata.get("page", ""),
+                "score": match.score,
+                "title": match.metadata.get("title", "") or extract_title_from_text(policy_text),
+                "category": extract_category(policy_text)
+            }
+            
+            search_results.append(policy_info)
+            
+            # 원하는 개수만큼 정책 가져오기
+            if len(search_results) >= top_k:
+                break
+        
+        return search_results
+    except Exception as e:
+        print(f"정책 검색 오류: {str(e)}")
+        return []

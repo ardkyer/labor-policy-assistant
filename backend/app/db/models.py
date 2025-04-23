@@ -1,3 +1,5 @@
+from typing import List, Optional
+from openai import BaseModel
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, Text, DateTime, Float, JSON, UniqueConstraint
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -195,3 +197,16 @@ class SavedPolicy(Base):
     __table_args__ = (
         UniqueConstraint('user_id', 'policy_id', name='unique_user_policy'),
     )
+
+class PolicyDisplay(BaseModel):
+    id: str
+    title: str
+    content: str
+    page: Optional[str] = None
+    category: Optional[str] = None
+    is_saved: bool = False
+    # 추가된 필드
+    enhanced_summary: Optional[str] = None
+    enhanced_eligibility: Optional[List[str]] = None
+    enhanced_benefits: Optional[List[str]] = None
+    enhanced_application: Optional[str] = None

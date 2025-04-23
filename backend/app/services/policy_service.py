@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from app.db.models import User, SavedPolicy, RecommendedPolicy, UserProfile
 from app.services.policy_matcher import PolicyMatcher
+from openai import OpenAI
 
 policy_matcher = PolicyMatcher()
 
@@ -134,3 +135,43 @@ def is_policy_saved(db: Session, user_id: int, policy_id: str) -> bool:
         SavedPolicy.user_id == user_id,
         SavedPolicy.policy_id == policy_id
     ).first() is not None
+
+def generate_user_friendly_policy_description(policy_text: str, user_profile: dict) -> dict:
+    """정책 텍스트를 사용자 친화적인 형태로 변환"""
+    client = OpenAI(api_key=OPENAI_API_KEY)
+    
+    prompt = f"""
+    다음은 고용노동부 정책 내용입니다:
+    {policy_text[:2000]}  # 긴 정책은 앞부분만 사용
+    
+    다음 정보를 추출해서 JSON 형식으로 반환해주세요:
+    1. "summary": 이 정책의 핵심 내용을 3-4문장으로 요약 (일반인이 이해하기 쉽게)
+    2. "benefits": 이 정책의 주요 혜택을 3가지 항목으로 추출 (간결하게 작성)
+    3. "eligibility": 이 정책의 대상자/신청자격을 2-3가지 항목으로 정리
+    4. "application": 신청 방법을 1-2문장으로 간략히 설명
+    
+    사용자 프로필: {user_profile}
+    이 사용자에게 어떻게 도움이 될 수 있는지 고려해서 작성해주세요.
+    """
+    
+    response = client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "당신은 고용노동부 정책을 일반인이 이해하기 쉽게 설명해주는 전문가입니다."},
+            {"role": "user", "content": prompt}
+        ],
+        response_format={"type": "json_object"}
+    )
+    
+    try:
+        # JSON 파싱
+        result = json.loads(response.choices[0].message.content)
+        return result
+    except:
+        # 파싱 실패시 기본값 반환
+        return {
+            "summary": "정책 요약을 생성할 수 없습니다.",
+            "benefits": ["혜택 정보를 찾을 수 없습니다."],
+            "eligibility": ["자격 요건 정보를 찾을 수 없습니다."],
+            "application": "신청 방법 정보를 찾을 수 없습니다."
+        }

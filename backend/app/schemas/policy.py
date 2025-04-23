@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 
@@ -35,14 +35,18 @@ class RecommendedPolicyResponse(RecommendedPolicyBase):
     class Config:
         orm_mode = True
 
-# 프론트엔드에 반환할 정책 데이터 형식
 class PolicyDisplay(BaseModel):
-    id: str  # policy_id
+    id: str
     title: str
     content: str
     page: Optional[str] = None
     category: Optional[str] = None
     is_saved: bool = False
-    
+    # 추가된 필드
+    enhanced_summary: Optional[str] = None
+    enhanced_eligibility: Optional[List[str]] = Field(default_factory=list)
+    enhanced_benefits: Optional[List[str]] = Field(default_factory=list)
+    enhanced_application: Optional[str] = None
+
     class Config:
-        orm_mode = True
+        from_attributes = True  # 'orm_mode'가 deprecated 되어 'from_attributes'로 변경

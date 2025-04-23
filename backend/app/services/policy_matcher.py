@@ -1,9 +1,9 @@
-# app/services/policy_matcher.py
 import os
 from typing import List, Dict, Any
 from pinecone import Pinecone
 from openai import OpenAI
 from dotenv import load_dotenv
+import json
 
 # .env 파일 로드
 load_dotenv()
@@ -97,6 +97,50 @@ class PolicyMatcher:
         
         return response.choices[0].message.content.strip()
     
+    def generate_user_friendly_policy_summary(self, policy_text: str, profile: Dict[str, Any]) -> Dict[str, Any]:
+        """정책을 사용자 친화적인 형태로 요약합니다."""
+        profile_text = "\n".join([f"{k}: {v}" for k, v in profile.items() if v])
+        
+        prompt = f"""
+        다음은 사용자 프로필 정보입니다:
+        {profile_text}
+        
+        다음은 고용노동부 정책 내용입니다:
+        {policy_text[:3000]}  # 정책 텍스트 길이 제한
+        
+        이 정책을 사용자가 이해하기 쉽게 다음 형식으로 요약해주세요:
+        1. "summary": 정책의 핵심 내용을 3-4문장으로 요약 (일반인이 이해하기 쉽게)
+        2. "benefits": 주요 혜택을 3가지 항목으로 추출 (간결하게 작성)
+        3. "eligibility": 지원 대상/신청자격을 2-3가지 항목으로 정리
+        4. "application": 신청 방법을 1-2문장으로 간략히 설명
+        5. "relevance": 이 사용자에게 이 정책이 왜 유용한지 설명 (1-2문장)
+        
+        JSON 형식으로 반환해주세요.
+        """
+        
+        try:
+            response = self.client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "당신은 고용노동 정책 전문가입니다. 정책 내용을 일반인이 이해하기 쉽게 요약하는 역할을 합니다."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3,
+                response_format={"type": "json_object"},
+                max_tokens=500
+            )
+            
+            return json.loads(response.choices[0].message.content)
+        except Exception as e:
+            print(f"정책 요약 생성 중 오류: {str(e)}")
+            return {
+                "summary": "이 정책은 고용노동부에서 제공하는 지원제도입니다.",
+                "benefits": ["정책 혜택을 확인할 수 없습니다."],
+                "eligibility": ["지원 대상 정보를 확인할 수 없습니다."],
+                "application": "자세한 신청 방법은 관련 기관에 문의하세요.",
+                "relevance": "이 정책이 사용자에게 적합한지 평가할 수 없습니다."
+            }
+    
     def generate_relevance_explanation(self, profile: Dict[str, Any], policy_text: str) -> str:
         """정책과 사용자 프로필 간의 연관성 설명을 생성합니다."""
         profile_text = "\n".join([f"{k}: {v}" for k, v in profile.items() if v])
@@ -154,14 +198,22 @@ class PolicyMatcher:
                 
             policy_text = match.metadata.get("text", "")
             
-            recommendations.append({
+            # 기본 정책 정보
+            policy_info = {
                 "text": policy_text,
                 "page": page,
                 "score": match.score,
                 "policy_keywords": query, # 생성된 쿼리 키워드도 함께 반환
                 "policy_id": match.metadata.get("policy_id", "") or match.id,
-                "title": match.metadata.get("title", "") or self.extract_title_from_text(policy_text)
-            })
+                "title": match.metadata.get("title", "") or self.extract_title_from_text(policy_text),
+                "category": self.extract_category(policy_text)
+            }
+            
+            # 사용자 친화적인 요약 추가 (시간이 오래 걸리므로 선택적으로 활성화)
+            # user_friendly_summary = self.generate_user_friendly_policy_summary(policy_text, profile)
+            # policy_info.update(user_friendly_summary)
+            
+            recommendations.append(policy_info)
             
             # 원하는 개수의 추천 항목을 얻으면 중단
             if len(recommendations) >= top_k:
@@ -177,3 +229,22 @@ class PolicyMatcher:
             if line and len(line) < 100:  # 적당한 길이의 줄 찾기
                 return line
         return "제목 없음"
+    
+    def extract_category(self, text: str) -> str:
+        """텍스트 내용 기반으로 카테고리 추정"""
+        categories = {
+            "청년": ["청년", "20대", "30대", "학졸자", "구직자"],
+            "고령자": ["고령자", "신중년", "50대", "60대"],
+            "장애인": ["장애인", "중증장애", "경증장애"],
+            "여성": ["여성", "육아", "출산", "모성"],
+            "외국인": ["외국인", "다문화", "이주민"],
+            "사업주": ["사업주", "기업", "고용주", "사업장"],
+            "직업능력개발": ["직업훈련", "능력개발", "자격증", "교육훈련"]
+        }
+        
+        for category, keywords in categories.items():
+            for keyword in keywords:
+                if keyword in text:
+                    return category
+        
+        return "기타"

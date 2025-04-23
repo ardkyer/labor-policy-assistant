@@ -167,3 +167,56 @@ def get_notifications(
         })
     
     return result
+
+@router.get("/recommended-policies", response_model=List[Dict])
+def get_recommended_policies(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """사용자에게 추천된 정책 목록 가져오기"""
+    # 프로필 정보 가져오기
+    profile = db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
+    if not profile:
+        raise HTTPException(status_code=404, detail="프로필 정보가 없습니다")
+    
+    # 프로필 타입 ID 기반 추천 가져오기
+    recommendations = db.query(ProfileRecommendation).filter(
+        ProfileRecommendation.profile_type_id == profile.profile_type_id
+    ).all()
+    
+    # 없으면 새로 생성 (기존 로직)
+    if not recommendations:
+        # 기존 로직 유지...
+        pass
+    
+    # 결과 가공 - LLM으로 사용자 친화적인 설명 추가
+    user_profile = {
+        "age": profile.age,
+        "gender": profile.gender,
+        "employment_status": profile.employment_status,
+        "is_disabled": profile.is_disabled,
+        "is_foreign": profile.is_foreign,
+        "family_status": profile.family_status
+    }
+    
+    enhanced_recommendations = []
+    for rec in recommendations:
+        # 기본 정보
+        policy_info = {
+            "id": rec.policy_id,
+            "title": rec.policy_title,
+            "category": rec.category,
+            "page_number": rec.page_number,
+            "original_content": rec.policy_content,
+        }
+        
+        # LLM 사용하여 사용자 친화적인 설명 생성
+        user_friendly_info = generate_user_friendly_policy_description(
+            rec.policy_content, user_profile
+        )
+        
+        # 결과 합치기
+        policy_info.update(user_friendly_info)
+        enhanced_recommendations.append(policy_info)
+    
+    return enhanced_recommendations
