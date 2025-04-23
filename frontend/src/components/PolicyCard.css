@@ -219,3 +219,16 @@
   background-color: #ede7f6;
   color: #5e35b1;
 }
+
+.loading-indicator p {
+  font-size: 14px;
+  color: #555;
+  text-align: center;
+  margin-top: 10px;
+  animation: fadein 0.3s ease-in-out;
+}
+
+@keyframes fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
