@@ -4,6 +4,7 @@ import { AuthContext } from '../context/AuthContext';
 import './Auth.css';
 
 const Register = () => {
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -32,36 +33,69 @@ const Register = () => {
 
   const validate = () => {
     const errors = {};
+
     if (!formData.email) {
       errors.email = '이메일을 입력해주세요';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       errors.email = '유효한 이메일 주소를 입력해주세요';
     }
+
     if (!formData.password) {
       errors.password = '비밀번호를 입력해주세요';
     } else if (formData.password.length < 8) {
       errors.password = '비밀번호는 8자 이상이어야 합니다';
     }
+
     if (formData.password !== formData.confirmPassword) {
       errors.confirmPassword = '비밀번호가 일치하지 않습니다';
     }
+
     if (!formData.name) {
       errors.name = '이름을 입력해주세요';
     }
+
+    // 프로필 정보 필수 항목 추가
+    if (!formData.age) {
+      errors.age = '연령대를 선택해주세요';
+    }
+    if (!formData.gender) {
+      errors.gender = '성별을 선택해주세요';
+    }
+    if (!formData.employmentStatus) {
+      errors.employmentStatus = '고용상태를 선택해주세요';
+    }
+    if (!formData.isDisabled) {
+      errors.isDisabled = '장애인 여부를 선택해주세요';
+    }
+    if (!formData.isForeign) {
+      errors.isForeign = '외국인 여부를 선택해주세요';
+    }
+    if (!formData.familyStatus) {
+      errors.familyStatus = '가족 상황을 선택해주세요';
+    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (validate()) {
-      console.log('회원가입 데이터:', formData);
+      setIsLoading(true); // 로딩 시작
       const success = await register(formData);
       if (success) {
-        navigate('/login');
+        // 1초 정도 지연을 주면 자연스러움
+        setTimeout(() => {
+          setIsLoading(false);
+          navigate('/login');
+        }, 1000);
+      } else {
+        setIsLoading(false); // 실패 시도 리셋
       }
     }
   };
+
 
   return (
     <div className="auth-container">
@@ -118,7 +152,7 @@ const Register = () => {
           </div>
 
           <div className="form-section">
-            <h3>프로필 정보 (선택사항)</h3>
+            <h3>프로필 정보</h3>
             <div className="form-group">
               <label htmlFor="age">
                 연령대
@@ -266,7 +300,14 @@ const Register = () => {
             </div>
           </div>
 
-          <button type="submit" className="auth-button">회원가입</button>
+          {isLoading ? (
+            <div className="loading-box">
+              <div className="spinner"></div>
+              <p>사용자 프로필에 맞춰 정책을 추천하고 있습니다...</p>
+            </div>
+          ) : (
+            <button type="submit" className="auth-button">회원가입</button>
+          )}
         </form>
 
         <div className="auth-links">

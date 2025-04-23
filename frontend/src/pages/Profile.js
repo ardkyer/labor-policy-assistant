@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import api, { apiService } from '../services/api';
 import './Profile.css';
+import PolicyCard from '../components/PolicyCard';
 
 const Profile = () => {
   const { user } = useContext(AuthContext);
@@ -10,7 +11,7 @@ const Profile = () => {
     age: '',
     gender: '',
     employmentStatus: '',
-    region: '',
+    // region: '',
     isDisabled: false,
     isForeign: false,
     familyStatus: '',
@@ -23,6 +24,11 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('profile');
+
+  useEffect(() => {
+    console.log("savedPolicies 확인", savedPolicies);
+  }, [savedPolicies]);
+
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -42,15 +48,18 @@ const Profile = () => {
           age: profile.age || '',
           gender: profile.gender || '',
           employmentStatus: profile.employment_status || '',
-          region: profile.region || '',
+          familyStatus: profile.family_status || '',
+          isDisabled: profile.is_disabled || false,
+          isForeign: profile.is_foreign || false,
           notifyPolicyUpdates: profile.notify_policy_updates || false,
           notifyDeadlines: profile.notify_deadlines || false,
           notifyNewPolicies: profile.notify_new_policies || false
         });
 
+
         try {
           // 저장한 정책 가져오기 (가능한 경우)
-          const policiesResponse = await api.get('/profiles/me/saved-policies');
+          const policiesResponse = await api.get('/policies/saved/');
           setSavedPolicies(policiesResponse.data);
         } catch (err) {
           console.warn('저장된 정책을 가져오는데 실패했습니다:', err);
@@ -82,7 +91,7 @@ const Profile = () => {
     age: '',
     gender: '',
     employmentStatus: '',
-    region: ''
+    // region: ''
   });
   const [isEditing, setIsEditing] = useState(false);
 
@@ -93,19 +102,20 @@ const Profile = () => {
         age: profileData.age || '',
         gender: profileData.gender || '',
         employmentStatus: profileData.employmentStatus || '',
-        region: profileData.region || ''
+        // region: profileData.region || ''
       });
     }
   }, [profileData]);
 
   const handleRemoveSavedPolicy = async (policyId) => {
     try {
-      await api.delete(`/profiles/me/saved-policies/${policyId}`);
+      await api.delete(`/policies/save/${policyId}`); // 🔥 이게 맞는 주소야
       setSavedPolicies(prev => prev.filter(policy => policy.id !== policyId));
     } catch (err) {
       console.error('정책 삭제 실패:', err);
     }
   };
+  
 
   if (loading) {
     return <div className="loading">프로필 로딩 중...</div>;
@@ -131,12 +141,6 @@ const Profile = () => {
             onClick={() => setActiveTab('policies')}
           >
             관심 정책
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'notifications' ? 'active' : ''}`}
-            onClick={() => setActiveTab('notifications')}
-          >
-            알림 설정
           </button>
         </div>
       </div>
@@ -188,15 +192,6 @@ const Profile = () => {
                 </span>
               </div>
               <div className="info-item">
-                <span className="info-label">지역</span>
-                <span className="info-value">
-                  {profileData.region === 'seoul' && '서울'}
-                  {profileData.region === 'busan' && '부산'}
-                  {profileData.region === 'incheon' && '인천'}
-                  {!profileData.region && '-'}
-                </span>
-              </div>
-              <div className="info-item">
                 <span className="info-label">장애인 여부</span>
                 <span className="info-value">
                   {profileData.isDisabled ? '예' : '아니오'}
@@ -231,25 +226,13 @@ const Profile = () => {
                 <a href="/search" className="search-link">정책 추천 보러 가기</a>
               </div>
             ) : (
-              <div className="saved-policies-list">
-                {savedPolicies.map(policy => (
-                  <div key={policy.id} className="saved-policy-card">
-                    <h4 className="policy-title">{policy.title}</h4>
-                    <div className="policy-meta">
-                      <span className="policy-category">{policy.category}</span>
-                      {policy.deadline && (
-                        <span className="policy-deadline">마감일: {policy.deadline}</span>
-                      )}
-                    </div>
-                    <div className="policy-actions">
-                      <a href={`/policies/${policy.id}`} className="view-button">상세 보기</a>
-                      <button
-                        className="remove-button"
-                        onClick={() => handleRemoveSavedPolicy(policy.id)}
-                      >
-                        삭제
-                      </button>
-                    </div>
+              <div className="saved-policies-grid">
+                {savedPolicies.map((policy, index) => (
+                  <div className="policy-card-wrapper" key={`saved-${policy.id}-${index}`}>
+                    <PolicyCard
+                      policy={{ ...policy, is_saved: true }}
+                      onSave={() => handleRemoveSavedPolicy(policy.id)}
+                    />
                   </div>
                 ))}
               </div>
@@ -257,111 +240,6 @@ const Profile = () => {
           </div>
         )}
 
-        {activeTab === 'notifications' && (
-          <div className="notifications-section">
-            <h3>알림 설정</h3>
-
-            <div className="notification-options">
-              <div className="notification-option">
-                <input
-                  type="checkbox"
-                  id="policy-updates"
-                  checked={profileData.notifyPolicyUpdates}
-                  onChange={async () => {
-                    try {
-                      const updated = !profileData.notifyPolicyUpdates;
-                      await api.put('/profiles/me/notifications/settings', {
-                        notify_policy_updates: updated
-                      });
-                      setProfileData(prev => ({
-                        ...prev,
-                        notifyPolicyUpdates: updated
-                      }));
-                    } catch (err) {
-                      console.error('알림 설정 업데이트 실패:', err);
-                    }
-                  }}
-                />
-                <label htmlFor="policy-updates">정책 업데이트 알림</label>
-                <p className="option-description">저장한 정책의 내용이 업데이트되면 알림을 받습니다.</p>
-              </div>
-
-              <div className="notification-option">
-                <input
-                  type="checkbox"
-                  id="deadline-alerts"
-                  checked={profileData.notifyDeadlines}
-                  onChange={async () => {
-                    try {
-                      const updated = !profileData.notifyDeadlines;
-                      await api.put('/profiles/me/notifications/settings', {
-                        notify_deadlines: updated
-                      });
-                      setProfileData(prev => ({
-                        ...prev,
-                        notifyDeadlines: updated
-                      }));
-                    } catch (err) {
-                      console.error('알림 설정 업데이트 실패:', err);
-                    }
-                  }}
-                />
-                <label htmlFor="deadline-alerts">마감일 알림</label>
-                <p className="option-description">저장한 정책의 신청 마감일이 다가오면 알림을 받습니다.</p>
-              </div>
-
-              <div className="notification-option">
-                <input
-                  type="checkbox"
-                  id="new-policies"
-                  checked={profileData.notifyNewPolicies}
-                  onChange={async () => {
-                    try {
-                      const updated = !profileData.notifyNewPolicies;
-                      await api.put('/profiles/me/notifications/settings', {
-                        notify_new_policies: updated
-                      });
-                      setProfileData(prev => ({
-                        ...prev,
-                        notifyNewPolicies: updated
-                      }));
-                    } catch (err) {
-                      console.error('알림 설정 업데이트 실패:', err);
-                    }
-                  }}
-                />
-                <label htmlFor="new-policies">새 정책 알림</label>
-                <p className="option-description">내 프로필에 맞는 새로운 정책이 추가되면 알림을 받습니다.</p>
-              </div>
-            </div>
-
-            <div className="notification-history">
-              <h4>최근 알림</h4>
-
-              {notifications.length === 0 ? (
-                <p className="no-notifications">최근 알림이 없습니다.</p>
-              ) : (
-                <ul className="notifications-list">
-                  {notifications.map(notification => (
-                    <li key={notification.id} className="notification-item">
-                      <div className="notification-content">
-                        <span className="notification-icon">
-                          {notification.type === 'update' && '🔄'}
-                          {notification.type === 'deadline' && '⏰'}
-                          {notification.type === 'new' && '🆕'}
-                        </span>
-                        <span className="notification-message">{notification.message}</span>
-                      </div>
-                      <span className="notification-time">
-                        {new Date(notification.createdAt).toLocaleDateString()}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );

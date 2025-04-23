@@ -459,3 +459,10 @@ def get_user_saved_policies(
             ))
     
     return result
+
+@router.get("/profiles/me/saved-policies", response_model=List[PolicyDisplay])
+def get_my_saved_policies_alias(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return get_user_saved_policies(db, current_user)
