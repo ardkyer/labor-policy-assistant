@@ -2,7 +2,8 @@
 import axios from 'axios';
 
 // 백엔드 API URL
-const API_URL = 'http://localhost:8000/api/v1';
+// const API_URL = 'http://localhost:8000/api/v1';
+const API_URL = `${process.env.REACT_APP_API_URL}/api/v1`;
 
 // axios 인스턴스 생성
 const api = axios.create({
