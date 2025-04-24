@@ -1,6 +1,7 @@
 // src/context/AuthContext.js
 import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 
 // 백엔드 서버 URL
 // const API_URL = 'http://localhost:8000/api/v1';
@@ -11,7 +12,7 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(true); // 로딩 상태 추가
+  const [loading, setLoading] = useState(true); // 로딩 상태
 
   // 앱 시작 시 자동으로 사용자 정보 불러오기
   useEffect(() => {
@@ -41,22 +42,36 @@ export const AuthProvider = ({ children }) => {
       const formData = new FormData();
       formData.append('username', email); // 백엔드는 username으로 email을 받음
       formData.append('password', password);
-
+      
       // 로그인 요청
       console.log('로그인 요청 URL:', `${API_URL}/auth/login`);
       const response = await axios.post(`${API_URL}/auth/login`, formData);
       console.log('로그인 응답:', response.data);
-
+      
       // 토큰 저장 및 사용자 정보 설정
       const token = response.data.access_token;
       localStorage.setItem('token', token);
-
+      
       // 사용자 정보 가져오기
       await fetchUserInfo(token);
+      
+      // 로그인 성공 알림
+      toast.success('로그인 되었습니다!', {
+        position: "top-center",
+        autoClose: 2000
+      });
+      
       return true;
     } catch (err) {
       console.error('로그인 오류:', err.response?.data || err.message);
       setError(err.response?.data?.detail || '로그인 중 오류가 발생했습니다');
+      
+      // 로그인 실패 알림
+      toast.error('로그인에 실패했습니다', {
+        position: "top-center",
+        autoClose: 3000
+      });
+      
       return false;
     }
   };
@@ -76,11 +91,11 @@ export const AuthProvider = ({ children }) => {
           employment_status: userData.employmentStatus,
           region: userData.region,
           is_disabled: userData.isDisabled, // 장애인 여부 추가
-          is_foreign: userData.isForeign,   // 외국인 여부 추가
+          is_foreign: userData.isForeign, // 외국인 여부 추가
           family_status: userData.familyStatus // 가족 상황 추가
         }
       };
-
+      
       // 회원가입 요청 - 디버깅 추가
       console.log('회원가입 요청 URL:', `${API_URL}/auth/register`);
       console.log('회원가입 데이터:', registerData);
@@ -88,10 +103,24 @@ export const AuthProvider = ({ children }) => {
       // 요청 전송
       const response = await axios.post(`${API_URL}/auth/register`, registerData);
       console.log('회원가입 응답:', response.data);
+      
+      // 회원가입 성공 알림
+      toast.success('회원가입이 완료되었습니다!', {
+        position: "top-center",
+        autoClose: 2000
+      });
+      
       return true;
     } catch (err) {
       console.error('회원가입 오류:', err.response?.data || err.message);
       setError(err.response?.data?.detail || '회원가입 중 오류가 발생했습니다');
+      
+      // 회원가입 실패 알림
+      toast.error('회원가입에 실패했습니다', {
+        position: "top-center",
+        autoClose: 3000
+      });
+      
       return false;
     }
   };
@@ -113,6 +142,12 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
+    
+    // 로그아웃 알림
+    toast.info('로그아웃 되었습니다', {
+      position: "top-center",
+      autoClose: 2000
+    });
   };
 
   return (

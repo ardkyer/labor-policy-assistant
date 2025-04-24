@@ -1,6 +1,8 @@
-// App.js 수정
+// App.js
 import React, { useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import PolicySearch from './pages/PolicySearch';
@@ -14,13 +16,27 @@ import './App.css';
 // 보호된 라우트 컴포넌트 (인증 필요)
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useContext(AuthContext);
+  const location = useLocation();
   
+  // 로딩 중이면 로딩 표시
   if (loading) {
     return <div className="loading">로딩 중...</div>;
   }
   
+  // 로그인되지 않았으면 경고 메시지 표시 후 로그인 페이지로 리다이렉트
   if (!user) {
-    return <Navigate to="/login" />;
+    // 알림 메시지 표시
+    toast.info('로그인이 필요한 서비스입니다.', {
+      position: "top-center",
+      autoClose: 3000,
+      hideProgressBar: false,
+      closeOnClick: true,
+      pauseOnHover: true,
+      draggable: true
+    });
+    
+    // 현재 위치 정보를 포함하여 로그인 페이지로 리다이렉트
+    return <Navigate to="/login" state={{ from: location.pathname }} />;
   }
   
   return children;
@@ -51,26 +67,46 @@ function AppRoutes() {
   return (
     <Router>
       <div className="App">
+        <ToastContainer />
         <Navbar />
         <div className="content">
           <Routes>
             <Route path="/" element={<Home />} />
-            <Route path="/search" element={<PolicySearch />} />
             
-            {/* 채팅 관련 경로 수정 */}
-            <Route path="/chat" element={<Navigate to="/chat/new" />} />
-            <Route path="/chat/:chatId" element={<ChatAssistant />} />
+            {/* 정책 검색 - 보호된 라우트로 수정 */}
+            <Route path="/search" element={
+              <ProtectedRoute>
+                <PolicySearch />
+              </ProtectedRoute>
+            } />
             
+            {/* 채팅 관련 경로 - 보호된 라우트로 수정 */}
+            <Route path="/chat" element={
+              <ProtectedRoute>
+                <Navigate to="/chat/new" />
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/chat/:chatId" element={
+              <ProtectedRoute>
+                <ChatAssistant />
+              </ProtectedRoute>
+            } />
+            
+            {/* 로그인/회원가입 */}
             <Route path="/login" element={
               <PublicRoute>
                 <Login />
               </PublicRoute>
             } />
+            
             <Route path="/register" element={
               <PublicRoute>
                 <Register />
               </PublicRoute>
             } />
+            
+            {/* 프로필 */}
             <Route path="/profile" element={
               <ProtectedRoute>
                 <Profile />

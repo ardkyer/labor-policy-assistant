@@ -164,3 +164,29 @@
       transform: rotate(360deg);
     }
   }
+
+  .auth-message {
+    background-color: #f8f9fa;
+    border-left: 4px solid #007bff;
+    color: #495057;
+    padding: 12px 15px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* 알림 메시지 스타일 커스텀 (react-toastify와 함께 사용) */
+  /* App.js에 아래 스타일을 추가하거나 별도의 CSS 파일로 분리할 수 있습니다 */
+  .Toastify__toast-container {
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+
+  .Toastify__toast--info {
+    background-color: #3498db;
+  }
+
+  .Toastify__toast-body {
+    font-size: 14px;
+    padding: 10px;
+  }

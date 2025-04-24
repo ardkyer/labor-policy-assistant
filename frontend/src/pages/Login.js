@@ -1,6 +1,6 @@
 // File: src/pages/Login.js
 import React, { useState, useContext } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import './Auth.css';
 
@@ -12,6 +12,10 @@ const Login = () => {
   const [formErrors, setFormErrors] = useState({});
   const { login, error } = useContext(AuthContext);
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // 이전 페이지 경로 가져오기 (없으면 홈으로)
+  const from = location.state?.from || '/';
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -23,28 +27,25 @@ const Login = () => {
 
   const validate = () => {
     const errors = {};
-    
     if (!formData.email) {
       errors.email = '이메일을 입력해주세요';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       errors.email = '유효한 이메일 주소를 입력해주세요';
     }
-    
     if (!formData.password) {
       errors.password = '비밀번호를 입력해주세요';
     }
-    
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
     if (validate()) {
       const success = await login(formData.email, formData.password);
       if (success) {
-        navigate('/');
+        // 로그인 성공 시 이전에 접근하려던 페이지로 리다이렉트
+        navigate(from);
       }
     }
   };
@@ -53,6 +54,13 @@ const Login = () => {
     <div className="auth-container">
       <div className="auth-card">
         <h2>로그인</h2>
+        
+        {/* 이전 페이지 정보가 있으면 안내 메시지 표시 */}
+        {location.state?.from && location.state.from !== '/' && (
+          <div className="auth-message">
+            서비스 이용을 위해 로그인이 필요합니다.
+          </div>
+        )}
         
         {error && <div className="auth-error">{error}</div>}
         
@@ -65,6 +73,7 @@ const Login = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
+              placeholder="example@email.com"
             />
             {formErrors.email && <span className="error-message">{formErrors.email}</span>}
           </div>
@@ -77,6 +86,7 @@ const Login = () => {
               name="password"
               value={formData.password}
               onChange={handleChange}
+              placeholder="비밀번호를 입력하세요"
             />
             {formErrors.password && <span className="error-message">{formErrors.password}</span>}
           </div>
