@@ -4,6 +4,13 @@ import { Link } from 'react-router-dom';
 import './Home.css';
 
 const Home = () => {
+  // PDF 다운로드 함수 추가
+  const downloadPdf = () => {
+    // PDF 다운로드 로직 구현
+    // 예시: 실제 PDF 파일 링크로 이동
+    window.open('/assets/policy_guide.pdf', '_blank');
+  };
+
   return (
     <div className="home-container">
       <div className="hero-section">
@@ -14,7 +21,6 @@ const Home = () => {
           <Link to="/chat" className="btn secondary-btn">AI 상담사와 대화하기</Link>
         </div>
       </div>
-
       <div className="features-section">
         <div className="feature-card">
           <div className="feature-icon">🔍</div>
@@ -27,9 +33,10 @@ const Home = () => {
           <p>고용노동 정책 전문 AI와 대화하며 궁금한 점을 바로 해결하세요.</p>
         </div>
         <div className="feature-card">
-          <div className="feature-icon">🔔</div>
-          <h3>정책 알림 서비스</h3>
-          <p>관심 있는 정책의 마감일, 변경사항을 실시간으로 알려드립니다.</p>
+          <div className="feature-icon">📄</div>
+          <h3>정책 자료 다운로드</h3>
+          <p>고용노동 정책 종합 안내서를 PDF로 다운받아 상세 내용을 확인하세요.</p>
+          <button className="pdf-btn" onClick={downloadPdf}>PDF 다운로드</button>
         </div>
       </div>
     </div>
