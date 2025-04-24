@@ -232,3 +232,43 @@
   from { opacity: 0; }
   to { opacity: 1; }
 }
+
+/* 버튼 위에 표시될 툴팁 스타일 */
+.btn-analysis-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.btn-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 8px;
+  background-color: rgba(0, 0, 0, 0.75);
+  color: white;
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 10;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.3s ease;
+  pointer-events: none;
+}
+
+.btn-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: rgba(0, 0, 0, 0.75) transparent transparent transparent;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

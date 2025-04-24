@@ -10,6 +10,7 @@ const PolicyCard = ({ policy, onSave }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [apiError, setApiError] = useState(false);
   const [loadingDots, setLoadingDots] = useState('.');
+  const [showTooltip, setShowTooltip] = useState(false);
 
   useEffect(() => {
     if (!isLoading) return;
@@ -288,6 +289,7 @@ const PolicyCard = ({ policy, onSave }) => {
           {isLoading && (
             <div className="loading-indicator">
               <p>정책 정보를 분석 중입니다{loadingDots}</p>
+              <p className="loading-time-note">AI 정책 분석은 약 10초 정도 소요됩니다.</p>
             </div>
           )}
 
@@ -394,12 +396,21 @@ const PolicyCard = ({ policy, onSave }) => {
         </div>
       </div>
       <div className="policy-actions">
-        <button
-          className="btn-toggle-details"
-          onClick={toggleDetails}
-        >
-          {showDetails ? '접기' : 'AI 정책 분석'}
-        </button>
+        <div className="btn-analysis-wrapper" 
+             onMouseEnter={() => setShowTooltip(true)}
+             onMouseLeave={() => setShowTooltip(false)}>
+          <button
+            className="btn-toggle-details"
+            onClick={toggleDetails}
+          >
+            {showDetails ? '접기' : 'AI 정책 분석'}
+          </button>
+          {!showDetails && showTooltip && (
+            <div className="btn-tooltip">
+              AI 분석은 10초 정도 소요됩니다. 조금만 기다려주세요!
+            </div>
+          )}
+        </div>
         <button
           className={`btn-save ${policy.is_saved ? 'saved' : ''}`}
           onClick={handleSave}

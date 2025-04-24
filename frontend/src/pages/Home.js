@@ -4,11 +4,8 @@ import { Link } from 'react-router-dom';
 import './Home.css';
 
 const Home = () => {
-  // PDF 다운로드 함수 추가
   const downloadPdf = () => {
-    // PDF 다운로드 로직 구현
-    // 예시: 실제 PDF 파일 링크로 이동
-    window.open('/assets/policy_guide.pdf', '_blank');
+    window.open('https://www.moel.go.kr/info/publicdata/majorpublish/majorPublishView.do?bbs_seq=20250200573', '_blank');
   };
 
   return (

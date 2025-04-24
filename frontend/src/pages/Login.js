@@ -10,13 +10,14 @@ const Login = () => {
     password: ''
   });
   const [formErrors, setFormErrors] = useState({});
+  const [isLoading, setIsLoading] = useState(false);
   const { login, error } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
   
   // 이전 페이지 경로 가져오기 (없으면 홈으로)
   const from = location.state?.from || '/';
-
+  
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -24,7 +25,7 @@ const Login = () => {
       [name]: value
     }));
   };
-
+  
   const validate = () => {
     const errors = {};
     if (!formData.email) {
@@ -38,18 +39,26 @@ const Login = () => {
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
-
+  
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (validate()) {
+      setIsLoading(true); // 로딩 시작
+      
       const success = await login(formData.email, formData.password);
+      
       if (success) {
-        // 로그인 성공 시 이전에 접근하려던 페이지로 리다이렉트
-        navigate(from);
+        // 로그인 성공 시 1초 후에 이전 페이지로 리다이렉트 (스피너 효과를 위해)
+        setTimeout(() => {
+          setIsLoading(false);
+          navigate(from);
+        }, 1000);
+      } else {
+        setIsLoading(false); // 실패 시 로딩 중단
       }
     }
   };
-
+  
   return (
     <div className="auth-container">
       <div className="auth-card">
@@ -74,6 +83,7 @@ const Login = () => {
               value={formData.email}
               onChange={handleChange}
               placeholder="example@email.com"
+              disabled={isLoading}
             />
             {formErrors.email && <span className="error-message">{formErrors.email}</span>}
           </div>
@@ -87,11 +97,19 @@ const Login = () => {
               value={formData.password}
               onChange={handleChange}
               placeholder="비밀번호를 입력하세요"
+              disabled={isLoading}
             />
             {formErrors.password && <span className="error-message">{formErrors.password}</span>}
           </div>
           
-          <button type="submit" className="auth-button">로그인</button>
+          {isLoading ? (
+            <div className="loading-box">
+              <div className="spinner"></div>
+              <p>로그인 중입니다...</p>
+            </div>
+          ) : (
+            <button type="submit" className="auth-button">로그인</button>
+          )}
         </form>
         
         <div className="auth-links">
