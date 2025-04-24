@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     @property
     def SQLALCHEMY_DATABASE_URI(self) -> str:
         return f"mysql+pymysql://{self.MYSQL_USER}:{self.MYSQL_PASSWORD}@{self.MYSQL_HOST}:{self.MYSQL_PORT}/{self.MYSQL_DB}"
+
     
     # JWT 설정
     SECRET_KEY: str = os.getenv("SECRET_KEY", "your-secret-key-for-dev")
