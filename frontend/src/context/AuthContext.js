@@ -3,7 +3,8 @@ import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
 // 백엔드 서버 URL
-const API_URL = 'http://localhost:8000/api/v1';
+// const API_URL = 'http://localhost:8000/api/v1';
+const API_URL = process.env.REACT_APP_API_URL + '/api/v1';
 
 export const AuthContext = createContext();
 
