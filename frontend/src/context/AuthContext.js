@@ -1,7 +1,6 @@
 // src/context/AuthContext.js
 import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
-import { toast } from 'react-toastify';
 
 // 백엔드 서버 URL
 // const API_URL = 'http://localhost:8000/api/v1';
@@ -55,22 +54,16 @@ export const AuthProvider = ({ children }) => {
       // 사용자 정보 가져오기
       await fetchUserInfo(token);
       
-      // 로그인 성공 알림
-      toast.success('로그인 되었습니다!', {
-        position: "top-center",
-        autoClose: 2000
-      });
+      // 로그인 성공 메시지 (콘솔에만 표시)
+      console.log('로그인 성공');
       
       return true;
     } catch (err) {
       console.error('로그인 오류:', err.response?.data || err.message);
       setError(err.response?.data?.detail || '로그인 중 오류가 발생했습니다');
       
-      // 로그인 실패 알림
-      toast.error('로그인에 실패했습니다', {
-        position: "top-center",
-        autoClose: 3000
-      });
+      // 로그인 실패 메시지 (콘솔에만 표시)
+      console.error('로그인 실패');
       
       return false;
     }
@@ -104,22 +97,16 @@ export const AuthProvider = ({ children }) => {
       const response = await axios.post(`${API_URL}/auth/register`, registerData);
       console.log('회원가입 응답:', response.data);
       
-      // 회원가입 성공 알림
-      toast.success('회원가입이 완료되었습니다!', {
-        position: "top-center",
-        autoClose: 2000
-      });
+      // 회원가입 성공 메시지 (콘솔에만 표시)
+      console.log('회원가입 성공');
       
       return true;
     } catch (err) {
       console.error('회원가입 오류:', err.response?.data || err.message);
       setError(err.response?.data?.detail || '회원가입 중 오류가 발생했습니다');
       
-      // 회원가입 실패 알림
-      toast.error('회원가입에 실패했습니다', {
-        position: "top-center",
-        autoClose: 3000
-      });
+      // 회원가입 실패 메시지 (콘솔에만 표시)
+      console.error('회원가입 실패');
       
       return false;
     }
@@ -143,11 +130,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('token');
     setUser(null);
     
-    // 로그아웃 알림
-    toast.info('로그아웃 되었습니다', {
-      position: "top-center",
-      autoClose: 2000
-    });
+    // 로그아웃 메시지 (콘솔에만 표시)
+    console.log('로그아웃 완료');
   };
 
   return (

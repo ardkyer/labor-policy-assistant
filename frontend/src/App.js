@@ -1,8 +1,6 @@
 // App.js
 import React, { useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import PolicySearch from './pages/PolicySearch';
@@ -23,17 +21,10 @@ const ProtectedRoute = ({ children }) => {
     return <div className="loading">로딩 중...</div>;
   }
   
-  // 로그인되지 않았으면 경고 메시지 표시 후 로그인 페이지로 리다이렉트
+  // 로그인되지 않았으면 로그인 페이지로 리다이렉트
   if (!user) {
-    // 알림 메시지 표시
-    toast.info('로그인이 필요한 서비스입니다.', {
-      position: "top-center",
-      autoClose: 3000,
-      hideProgressBar: false,
-      closeOnClick: true,
-      pauseOnHover: true,
-      draggable: true
-    });
+    // alert로 경고 표시 (toast 대신)
+    alert('로그인이 필요한 서비스입니다.');
     
     // 현재 위치 정보를 포함하여 로그인 페이지로 리다이렉트
     return <Navigate to="/login" state={{ from: location.pathname }} />;
@@ -67,7 +58,6 @@ function AppRoutes() {
   return (
     <Router>
       <div className="App">
-        <ToastContainer />
         <Navbar />
         <div className="content">
           <Routes>
