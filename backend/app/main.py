@@ -9,13 +9,16 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# CORS 설정
+# CORS 설정 - allow_origin_regex 추가하여 더 유연하게 설정
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
+    allow_origin_regex=r"https://.*\.vercel\.app",  # 모든 Vercel 도메인 패턴 허용
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["Content-Type", "Authorization"],
+    max_age=600,  # 프리플라이트 캐시 시간 (초)
 )
 
 # 라우터 등록
