@@ -14,8 +14,8 @@ const Register = () => {
     gender: '',
     employmentStatus: '',
     region: '',
-    isDisabled: '', // 빈 문자열로 변경
-    isForeign: '',  // 빈 문자열로 변경
+    isDisabled: '',
+    isForeign: '',
     familyStatus: ''
   });
 
@@ -36,15 +36,13 @@ const Register = () => {
 
     if (!formData.email) {
       errors.email = '이메일을 입력해주세요';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.email = '유효한 이메일 주소를 입력해주세요';
     }
+    // 이메일 형식 검증 코드 제거됨 (/@\S+\.\S+/ 정규식 검사 제거)
 
     if (!formData.password) {
       errors.password = '비밀번호를 입력해주세요';
-    } else if (formData.password.length < 8) {
-      errors.password = '비밀번호는 8자 이상이어야 합니다';
     }
+    // 비밀번호 8자 이상 검증 코드 제거됨
 
     if (formData.password !== formData.confirmPassword) {
       errors.confirmPassword = '비밀번호가 일치하지 않습니다';
@@ -54,7 +52,7 @@ const Register = () => {
       errors.name = '이름을 입력해주세요';
     }
 
-    // 프로필 정보 필수 항목 추가
+    // 프로필 정보 필수 항목 유지
     if (!formData.age) {
       errors.age = '연령대를 선택해주세요';
     }
