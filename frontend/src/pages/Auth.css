@@ -190,3 +190,68 @@
     font-size: 14px;
     padding: 10px;
   }
+
+  /* Auth.css에 추가할 스타일 */
+
+  /* 필수 표시 (*) 스타일 */
+  .required {
+    color: #ff4d4f;
+    margin-left: 4px;
+  }
+
+  .required-section {
+    color: #ff4d4f;
+    font-size: 0.9rem;
+    font-weight: normal;
+    margin-left: 10px;
+  }
+
+  /* 오류 발생 시 입력 필드 스타일 */
+  .error-field {
+    border: 1px solid #ff4d4f !important;
+    background-color: #fff1f0;
+  }
+
+  /* 전체 오류 메시지 스타일 */
+  .global-error {
+    background-color: #fff1f0;
+    border: 1px solid #ff4d4f;
+    color: #ff4d4f;
+    padding: 12px;
+    margin-bottom: 20px;
+    border-radius: 4px;
+    text-align: center;
+  }
+
+  /* 에러 메시지를 더 눈에 띄게 만들기 */
+  .error-message {
+    color: #ff4d4f;
+    font-weight: bold;
+    margin-top: 5px;
+    display: block;
+    animation: shake 0.5s;
+  }
+
+  /* 오류 표시 애니메이션 */
+  @keyframes shake {
+
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+
+    10%,
+    30%,
+    50%,
+    70%,
+    90% {
+      transform: translateX(-5px);
+    }
+
+    20%,
+    40%,
+    60%,
+    80% {
+      transform: translateX(5px);
+    }
+  }
