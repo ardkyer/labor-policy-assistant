@@ -312,7 +312,7 @@ def read_users_me(
     # 사용자 프로필 정보 가져오기
     profile = db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
     
-    # 프로필이 없으면 기본 정보만 반환
+    # 프로필이 없으면 기본 정보만 반환//
     if not profile:
         return {
             "id": current_user.id,
