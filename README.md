@@ -16,6 +16,8 @@
   </p>
 </div>
 <br>
+<br>
+<br>
 
 ## 🚀 프로젝트 소개
 Labor Policy AI Assistant는 고용노동부의 방대한 정책 정보를 쉽게 찾고 활용할 수 있도록 돕는 **AI 기반 정책 추천 및 상담 서비스**입니다.  
@@ -24,83 +26,68 @@ Labor Policy AI Assistant는 고용노동부의 방대한 정책 정보를 쉽�
 🔹 **AI 기반 정책 매칭**: 사용자의 프로필(나이, 성별, 취업 상태 등)을 기반으로 적합한 정책 추천  
 🔹 **LLM 기반 질의응답**: 고용노동 정책에 관한 자유로운 질의응답 서비스  
 
+<br>
+<br>
+<br>
+
 ## 🏗️ 기능 소개
 
 ### 🔑 회원가입 및 로그인
 - 사용자 프로필 기반 맞춤형 서비스 제공을 위한 회원 관리 시스템
 - 나이, 성별, 취업 상태 등 정책 추천에 필요한 프로필 정보 입력
 
-![회원가입 화면](./docs/imgs/signup.png)
+<img width="952" alt="image" src="https://github.com/user-attachments/assets/a19f909b-35a7-40c7-8766-d2b231f7c0fa" />
+
+<br>
+
+<img width="955" alt="image" src="https://github.com/user-attachments/assets/d6810a2a-8760-49e9-b8bc-a2d83936174f" />
+
+<br>
+<br>
+<br>
+
 
 ### 🔍 맞춤형 정책 추천
 - 사용자 프로필에 기반한 개인화된 정책 추천
 - 추천 정책의 요약 정보 및 원문 PDF 다운로드 제공
 
-![정책추천 화면](./docs/imgs/policy_recommendation.png)
+<img width="958" alt="image" src="https://github.com/user-attachments/assets/65fc8824-6b0f-4a3e-a968-1a81d0c8991e" />
+
+<br>
+
+<img width="952" alt="image" src="https://github.com/user-attachments/assets/880661d5-cf49-4a27-8619-83734dfa966f" />
+
+<br>
+<br>
+<br>
+<br>
 
 ### 💬 AI 챗봇 상담
 - 고용노동 정책에 관한 자유로운 질의응답
 - RAG(Retrieval-Augmented Generation) 기술을 활용한 정확한 정보 제공
 - 사용자 프로필 기반 맞춤형 정책 안내
 
-![챗봇 화면](./docs/imgs/chatbot.png)
+<img width="950" alt="image" src="https://github.com/user-attachments/assets/17944ae9-e911-4989-9ccc-18844c58aa2d" />
 
-### 🔎 정책 검색 및 조회
-- 키워드 기반 정책 검색 기능
-- 카테고리별 정책 필터링 및 조회
-- 정책 상세 정보 제공
+<br>
 
-![정책검색 화면](./docs/imgs/policy_search.png)
+<img width="950" alt="image" src="https://github.com/user-attachments/assets/852b2165-7e40-4e86-9d2d-992cbc6c3597" />
+
+<br>
+
+<img width="953" alt="image" src="https://github.com/user-attachments/assets/83aef5ff-3ef1-4a67-b088-9cdb0407dc42" />
+
+<br>
+<br>
+<br>
 
 ## 🌀 아키텍처
 
-```
-+---------------------+       +------------------------+
-|                     |       |                        |
-|   Frontend (React)  | <---> |   Backend (FastAPI)    |
-|                     |       |                        |
-+---------------------+       +------------------------+
-                                         |
-                                         | 
-                                         v
-              +-------------------------------------------+
-              |                                           |
-              |  +-------------+        +-------------+   |
-              |  |             |        |             |   |
-              |  |   MySQL     |        |  Pinecone   |   |
-              |  |  Database   |        | Vector DB   |   |
-              |  |             |        |             |   |
-              |  +-------------+        +-------------+   |
-              |                                           |
-              |           Data Storage Layer              |
-              +-------------------------------------------+
-                                         |
-                                         |
-                                         v
-              +-------------------------------------------+
-              |                                           |
-              |  +-------------+        +-------------+   |
-              |  |             |        |             |   |
-              |  |  OpenAI API |        |   OCR API   |   |
-              |  |  (LLM/Embed)|        | (Naver Cloud)|  |
-              |  |             |        |             |   |
-              |  +-------------+        +-------------+   |
-              |                                           |
-              |             AI Service Layer              |
-              +-------------------------------------------+
-                                         ^
-                                         |
-              +-------------------------------------------+
-              |                                           |
-              |        Data Processing Pipeline           |
-              |  (PDF -> OCR -> Chunking -> Embedding)    |
-              |                                           |
-              +-------------------------------------------+
-```
+<img width="1262" alt="image" src="https://github.com/user-attachments/assets/2cd88dec-4636-44c9-ad74-0b1d8884753e" />
+
+
 
 ## 📊 데이터 파이프라인
-
-프로젝트의 핵심은 고용노동부 정책 문서를 처리하는 파이프라인입니다:
 
 ```
 PDF 문서 -> OCR/텍스트 추출 -> 전처리 -> 청크 분할 -> 임베딩 생성 -> 벡터 DB 저장
@@ -111,15 +98,16 @@ PDF 문서 -> OCR/텍스트 추출 -> 전처리 -> 청크 분할 -> 임베딩 �
    - Naver Cloud OCR API 채택 (가장 높은 정확도)
 
 2. **데이터 청킹 및 임베딩**: 
-   - 추출된 텍스트를 의미 있는 단위로 분할
-   - OpenAI의 임베딩 모델을 사용해 벡터화
+   - LangChain의 RecursiveCharacterTextSplitter를 사용하여 추출된 텍스트를 의미 있는 단위로 분할
+   - OpenAI의 text-embedding-3-small 모델을 사용해 텍스트 청크를 1536차원 벡터로 변환
 
 3. **벡터 데이터베이스 저장**: 
-   - 생성된 임베딩을 Pinecone 벡터 DB에 저장
-   - 의미 기반 검색 지원
+   - LangChain 벡터 저장소 인터페이스를 통해 생성된 임베딩을 Pinecone 벡터 DB에 저장
+   - 텍스트 내용과 페이지 정보를 메타데이터로 함께 저장하여 검색 시 활용
 
 4. **RAG(Retrieval-Augmented Generation) 시스템**: 
-   - 사용자 질문 임베딩 → 유사 문서 검색 → LLM에 컨텍스트 제공 → 정확한 응답 생성
+   - LangChain의 검색 체인을 활용하여 사용자 질문 임베딩 → 유사 문서 검색 → LLM에 컨텍스트 제공 → 정확한 응답 생성
+   - LangChain의 RetrievalQA 체인으로 검색-증강-생성 과정을 통합 구현
 
 ## 🛠️ 설치 및 실행
 
@@ -190,6 +178,21 @@ npm start
 | `/api/recommendations`      | POST   | 사용자 프로필 기반 정책 추천        |
 | `/api/chat`                 | POST   | AI 챗봇 질의응답                    |
 
+<br>
+<br>
+
+## 개발일지
+
+[제4회 고용노동 공공데이터 활용 공모전 탐색](https://ardkyer.github.io/dev_logs/공모전-준비/)  
+[pdf 파서해서 pinecone에 넣기](https://ardkyer.github.io/dev_logs/pdf-파서해서-pinecone에-넣기/)  
+[PDF OCR하기](https://ardkyer.github.io/dev_logs/PDF-OCR-하기/)  
+[OCR 채택](https://ardkyer.github.io/dev_logs/OCR-채택/)  
+[고용노동부 어시스턴트 API 개발 및 테스트](https://ardkyer.github.io/dev_logs/고용노동부-API-개발/)  
+[OCR중 critical한 문제 해결](https://ardkyer.github.io/dev_logs/OCR중-critical한-오류-발생/)  
+[PDF 100장 넣고 테스트](https://ardkyer.github.io/dev_logs/2025-03-29-PDF-100장-넣고-테스트/)  
+[백엔드, 프론트엔드 연동](https://ardkyer.github.io/dev_logs/백엔드,-프론트엔드-연동-테스트/)  
+[프론트엔드 마무리 작업](https://ardkyer.github.io/dev_logs/프론트엔드-마무리-작업/)  
+[공공데이터 공모전 사업계획서 작성](https://ardkyer.github.io/dev_logs/공공데이터공모전_사업계획서/)  
 
 
 ## 👤 개발자 정보
