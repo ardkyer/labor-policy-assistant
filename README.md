@@ -1,6 +1,6 @@
 <div align="center">
   <br>
-  <img width="300" src="./frontend/public/assets/images/logo.png">
+  <img width="1275" alt="image" src="https://github.com/user-attachments/assets/3dbc2926-fd9c-4be1-8b6e-aec181659106" />
 
   <h2>AI로 더 쉽게 찾는 고용노동정책, Labor Policy AI Assistant</h2></hr>
   고용노동부의 방대한 정책 정보를 시민들이 더 쉽게 접근하고 활용할 수 있도록 돕는 AI 기반 서비스입니다.
@@ -16,18 +16,6 @@
   </p>
 </div>
 <br>
-
-## 📑 목차
-1. [프로젝트 소개](#-프로젝트-소개)
-2. [기능 소개](#-기능-소개)
-3. [아키텍처](#-아키텍처)
-4. [데이터 파이프라인](#-데이터-파이프라인)
-5. [설치 및 실행](#-설치-및-실행)
-6. [API 목록](#-api-목록)
-7. [폴더 구조](#-폴더-구조)
-8. [MySQL DB 구조](#-mysql-db-구조)
-9. [향후 계획](#-향후-계획)
-10. [개발자 정보](#-개발자-정보)
 
 ## 🚀 프로젝트 소개
 Labor Policy AI Assistant는 고용노동부의 방대한 정책 정보를 쉽게 찾고 활용할 수 있도록 돕는 **AI 기반 정책 추천 및 상담 서비스**입니다.  
